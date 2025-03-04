@@ -1,0 +1,44 @@
+# Binaries and build artifacts
+/bin/
+/build/
+/*.exe
+/*.out
+/*.dll
+/*.so
+/*.dylib
+
+# Go modules and dependencies
+/go.sum
+/go.work
+/go.work.sum
+/vendor/
+
+# Temporary files and caches
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Coverage reports and test artifacts
+/coverage.out
+*.cover
+/test-results/
+
+# Docker and deployment files
+/docker-compose.override.yml
+.env
+
+# Go cache and build metadata
+/.cache/
+/.gocache/
+/.goa/
