@@ -9,5 +9,6 @@ func SetupAuthRoutes(router *gin.RouterGroup) {
 	auth := router.Group("/auth")
 	{
 		auth.POST("/register/user", controllers.RegisterUser)
+		auth.POST("/login", controllers.Login)
 	}
 }
