@@ -11,6 +11,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// RegisterUser godoc
+// @Summary Registers a new user
+// @Description Creates a new user account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param user body models.User true "User Data"
+// @Success 201 {object} map[string]interface{}
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /auth/register/user [post]
 func RegisterUser(c *gin.Context) {
 	var user models.User
 	if er := c.ShouldBindJSON(&user); er != nil {
