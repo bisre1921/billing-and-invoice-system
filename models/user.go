@@ -1,39 +1,19 @@
-package user
+package models
 
 import (
 	"time"
 
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type UserID string
-
 type User struct {
-	ID        UserID
-	Name      string
-	Email     string
-	Phone     string
-	Password  string `json:"-"` // exclude password from json responses
-	Address   string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt time.Time
-}
-
-func NewUserID() UserID {
-	return UserID(uuid.New().String())
-}
-
-func HashPassword(password string) (string, error) {
-	hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hashed), nil
-}
-
-func CheckPassword(hashedPassword, password string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
-	return err == nil
+	ID        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Name      string             `json:"name" bson:"name"`
+	Email     string             `json:"email" bson:"email"`
+	Phone     string             `json:"phone,omitempty" bson:"phone,omitempty"`
+	Password  string             `json:"password" bson:"password"`
+	Address   string             `json:"address,omitempty" bson:"address,omitempty"`
+	CreatedAt time.Time          `json:"created_at" bson:"created_at"`
+	UpdatedAt time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
+	DeletedAt *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
 }

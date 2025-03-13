@@ -26,7 +26,7 @@ func ConnectDB() error {
 		return fmt.Errorf("MONGO_URI is not set in .env file")
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
