@@ -12,3 +12,10 @@ func SetupAuthRoutes(router *gin.RouterGroup) {
 		auth.POST("/login", controllers.Login)
 	}
 }
+
+func SetupCompanyRoutes(router *gin.RouterGroup) {
+	company := router.Group("/company")
+	{
+		company.POST("/create", controllers.CreateCompany)
+	}
+}
