@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -43,9 +42,6 @@ func RegisterUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error while hashing the password"})
 		return
 	}
-
-	fmt.Println("Original password:", user.Password)
-	fmt.Println("Hashed password:", string(hashedPassword))
 
 	user.Password = string(hashedPassword)
 	user.CreatedAt = time.Now()
@@ -89,11 +85,6 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid email"})
 		return
 	}
-
-	fmt.Println(user.Password)
-	fmt.Println(credentials.Password)
-	bool := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password))
-	fmt.Println(bool)
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(credentials.Password)); err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid password"})
