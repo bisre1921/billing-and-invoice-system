@@ -36,6 +36,7 @@ func main() {
 	v1 := r.Group("/api")
 	{
 		routes.SetupAuthRoutes(v1)
+		routes.SetupCompanyRoutes(v1)
 	}
 
 	r.Static("/docs", "./docs")

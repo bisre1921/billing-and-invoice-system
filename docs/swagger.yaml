@@ -1,5 +1,24 @@
 basePath: /api
 definitions:
+  models.Company:
+    properties:
+      address:
+        type: string
+      created_at:
+        type: string
+      deleted_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      owner:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.ErrorResponse:
     properties:
       error:
@@ -39,6 +58,8 @@ definitions:
       id:
         type: string
       name:
+        type: string
+      password:
         type: string
       phone:
         type: string
@@ -117,4 +138,37 @@ paths:
       summary: Registers a new user
       tags:
       - Auth
+  /company/create:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new company in the system
+      parameters:
+      - description: Company Data
+        in: body
+        name: company
+        required: true
+        schema:
+          $ref: '#/definitions/models.Company'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Company created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Creates a new company
+      tags:
+      - Company
 swagger: "2.0"
