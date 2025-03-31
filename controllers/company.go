@@ -29,8 +29,16 @@ func CreateCompany(c *gin.Context) {
 		return
 	}
 
+	idFromToken, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication token is required."})
+		c.Abort()
+		return
+	}
+
 	company.CreatedAt = time.Now()
 	company.UpdatedAt = time.Now()
+	company.Owner = idFromToken.(string)
 
 	result, err := config.DB.Collection("companies").InsertOne(context.Background(), company)
 	if err != nil {
