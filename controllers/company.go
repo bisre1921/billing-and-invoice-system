@@ -21,6 +21,7 @@ import (
 // @Failure 400 {object} map[string]interface{} "Bad Request"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /company/create [post]
+// @Security BearerAuth
 func CreateCompany(c *gin.Context) {
 	var company models.Company
 	if err := c.ShouldBindJSON(&company); err != nil {

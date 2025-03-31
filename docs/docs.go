@@ -115,6 +115,11 @@ const docTemplate = `{
         },
         "/company/create": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Registers a new company in the system",
                 "consumes": [
                     "application/json"
@@ -264,6 +269,13 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
