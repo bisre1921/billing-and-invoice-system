@@ -45,6 +45,21 @@ definitions:
       token:
         type: string
     type: object
+  models.UpdateUserInput:
+    properties:
+      address:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        type: string
+      phone:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.User:
     properties:
       address:
@@ -173,6 +188,47 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /user/update/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Updates user details by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User Data
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdateUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.User'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update user details
+      tags:
+      - User
 securityDefinitions:
   BearerAuth:
     in: header
