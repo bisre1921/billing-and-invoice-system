@@ -222,6 +222,37 @@ paths:
       summary: Add a new employee
       tags:
       - Employee
+  /employee/all:
+    get:
+      consumes:
+      - application/json
+      description: Business Owner views all employees for their company
+      parameters:
+      - description: Company ID
+        in: query
+        name: company_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Employee'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Get all employees for a company
+      tags:
+      - Employee
   /employee/delete/{id}:
     delete:
       consumes:

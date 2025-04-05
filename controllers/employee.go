@@ -88,3 +88,44 @@ func DeleteEmployee(c *gin.Context) {
 		"id":      id,
 	})
 }
+
+// GetAllEmployees godoc
+// @Summary Get all employees for a company
+// @Description Business Owner views all employees for their company
+// @Tags Employee
+// @Accept json
+// @Produce json
+// @Param company_id query string true "Company ID"
+// @Success 200 {array} models.Employee
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /employee/all [get]
+func GetAllEmployees(c *gin.Context) {
+	companyIDParam := c.Query("company_id")
+	if companyIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Company ID is required"})
+		return
+	}
+
+	companyID, err := primitive.ObjectIDFromHex(companyIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid company ID"})
+		return
+	}
+
+	filter := bson.M{"company_id": companyID}
+	cursor, err := config.DB.Collection("employees").Find(context.Background(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employees"})
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	var employees []models.Employee
+	if err := cursor.All(context.Background(), &employees); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to parse employee data"})
+		return
+	}
+
+	c.JSON(http.StatusOK, employees)
+}
