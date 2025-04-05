@@ -24,5 +24,6 @@ func SetupEmployeeRoutes(router *gin.RouterGroup) {
 	employee := router.Group("/employee")
 	{
 		employee.POST("/add", controllers.AddEmployee)
+		employee.DELETE("/delete/:id", controllers.DeleteEmployee)
 	}
 }
