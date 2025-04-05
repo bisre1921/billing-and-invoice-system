@@ -17,3 +17,12 @@ type User struct {
 	UpdatedAt time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
 	DeletedAt *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at,omitempty"`
 }
+
+type UpdateUserInput struct {
+	Name      *string   `json:"name,omitempty"`
+	Email     *string   `json:"email,omitempty"`
+	Phone     *string   `json:"phone,omitempty"`
+	Password  *string   `json:"password,omitempty"`
+	Address   *string   `json:"address,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+}

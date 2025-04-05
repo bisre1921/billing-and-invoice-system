@@ -21,6 +21,7 @@ import (
 // @Failure 400 {object} map[string]interface{} "Bad Request"
 // @Failure 500 {object} map[string]interface{} "Internal Server Error"
 // @Router /company/create [post]
+// @Security BearerAuth
 func CreateCompany(c *gin.Context) {
 	var company models.Company
 	if err := c.ShouldBindJSON(&company); err != nil {
@@ -28,8 +29,16 @@ func CreateCompany(c *gin.Context) {
 		return
 	}
 
+	idFromToken, ok := c.Get("userID")
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authentication token is required."})
+		c.Abort()
+		return
+	}
+
 	company.CreatedAt = time.Now()
 	company.UpdatedAt = time.Now()
+	company.Owner = idFromToken.(string)
 
 	result, err := config.DB.Collection("companies").InsertOne(context.Background(), company)
 	if err != nil {

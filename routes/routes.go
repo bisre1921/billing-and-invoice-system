@@ -2,10 +2,18 @@ package routes
 
 import (
 	"github.com/bisre1921/billing-and-invoice-system/controllers"
+	"github.com/bisre1921/billing-and-invoice-system/middleware"
 	"github.com/gin-gonic/gin"
 )
 
-func SetupAuthRoutes(router *gin.RouterGroup) {
+func SetupAllRoutes(router *gin.RouterGroup) {
+	_SetupAuthRoutes(router)
+	_SetupCompanyRoutes(router)
+	_SetupUserRoutes(router)
+  _SetupEmployeeRoutes(router)
+}
+
+func _SetupAuthRoutes(router *gin.RouterGroup) {
 	auth := router.Group("/auth")
 	{
 		auth.POST("/register/user", controllers.RegisterUser)
@@ -13,18 +21,26 @@ func SetupAuthRoutes(router *gin.RouterGroup) {
 	}
 }
 
-func SetupCompanyRoutes(router *gin.RouterGroup) {
+func _SetupCompanyRoutes(router *gin.RouterGroup) {
 	company := router.Group("/company")
+	company.Use(middleware.AuthMiddleware())
 	{
 		company.POST("/create", controllers.CreateCompany)
 	}
 }
 
-func SetupEmployeeRoutes(router *gin.RouterGroup) {
+func _SetupUserRoutes(router *gin.RouterGroup) {
+	user := router.Group("/user")
+	user.Use(middleware.AuthMiddleware())
+	{
+		user.PATCH("/update/:id", controllers.UpdateUser)
+	}
+
+func _SetupEmployeeRoutes(router *gin.RouterGroup) {
 	employee := router.Group("/employee")
 	{
 		employee.POST("/add", controllers.AddEmployee)
 		employee.DELETE("/delete/:id", controllers.DeleteEmployee)
 		employee.GET("/all", controllers.GetAllEmployees)
-	}
+  }
 }

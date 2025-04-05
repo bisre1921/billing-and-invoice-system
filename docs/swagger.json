@@ -109,6 +109,11 @@
         },
         "/company/create": {
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Registers a new company in the system",
                 "consumes": [
                     "application/json"
@@ -205,6 +210,14 @@
         "/employee/all": {
             "get": {
                 "description": "Business Owner views all employees for their company",
+        "/user/update/{id}": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Updates user details by ID",
                 "consumes": [
                     "application/json"
                 ],
@@ -222,6 +235,25 @@
                         "name": "company_id",
                         "in": "query",
                         "required": true
+                    "User"
+                ],
+                "summary": "Update user details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "User Data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdateUserInput"
+                        }
                     }
                 ],
                 "responses": {
@@ -232,6 +264,7 @@
                             "items": {
                                 "$ref": "#/definitions/models.Employee"
                             }
+                            "$ref": "#/definitions/models.User"
                         }
                     },
                     "400": {
@@ -280,6 +313,8 @@
                     },
                     "400": {
                         "description": "Bad Request",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -396,6 +431,29 @@
                 }
             }
         },
+        "models.UpdateUserInput": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "models.User": {
             "type": "object",
             "properties": {
@@ -427,6 +485,13 @@
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }
