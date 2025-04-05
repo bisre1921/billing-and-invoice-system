@@ -19,3 +19,10 @@ func SetupCompanyRoutes(router *gin.RouterGroup) {
 		company.POST("/create", controllers.CreateCompany)
 	}
 }
+
+func SetupEmployeeRoutes(router *gin.RouterGroup) {
+	employee := router.Group("/employee")
+	{
+		employee.POST("/add", controllers.AddEmployee)
+	}
+}

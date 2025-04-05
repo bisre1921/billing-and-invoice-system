@@ -37,6 +37,7 @@ func main() {
 	{
 		routes.SetupAuthRoutes(v1)
 		routes.SetupCompanyRoutes(v1)
+		routes.SetupEmployeeRoutes(v1)
 	}
 
 	r.Static("/docs", "./docs")

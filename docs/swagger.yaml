@@ -19,6 +19,27 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.Employee:
+    properties:
+      address:
+        type: string
+      company_id:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      position:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.ErrorResponse:
     properties:
       error:
@@ -171,4 +192,34 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /employee/add:
+    post:
+      consumes:
+      - application/json
+      description: Business Owner adds a new employee
+      parameters:
+      - description: Employee Data
+        in: body
+        name: employee
+        required: true
+        schema:
+          $ref: '#/definitions/models.Employee'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Add a new employee
+      tags:
+      - Employee
 swagger: "2.0"
