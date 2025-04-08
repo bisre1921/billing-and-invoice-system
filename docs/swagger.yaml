@@ -19,6 +19,25 @@ definitions:
       updated_at:
         type: string
     type: object
+  models.Customer:
+    properties:
+      address:
+        type: string
+      company_id:
+        type: string
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.Employee:
     properties:
       address:
@@ -209,6 +228,38 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /customer/register:
+    post:
+      consumes:
+      - application/json
+      description: Business Owner or Employee adds a new customer
+      parameters:
+      - description: Customer Data
+        in: body
+        name: customer
+        required: true
+        schema:
+          $ref: '#/definitions/models.Customer'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Register a new customer
+      tags:
+      - Customer
   /employee/add:
     post:
       consumes:
