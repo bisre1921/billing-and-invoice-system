@@ -23,6 +23,7 @@ import (
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /employee/add [post]
+// @Security BearerAuth
 func AddEmployee(c *gin.Context) {
 	var employee models.Employee
 
@@ -63,6 +64,7 @@ func AddEmployee(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /employee/delete/{id} [delete]
+// @Security BearerAuth
 func DeleteEmployee(c *gin.Context) {
 	id := c.Param("id")
 	objID, err := primitive.ObjectIDFromHex(id)
@@ -100,6 +102,7 @@ func DeleteEmployee(c *gin.Context) {
 // @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /employee/all [get]
+// @Security BearerAuth
 func GetAllEmployees(c *gin.Context) {
 	companyIDParam := c.Query("company_id")
 	if companyIDParam == "" {

@@ -10,7 +10,7 @@ func SetupAllRoutes(router *gin.RouterGroup) {
 	_SetupAuthRoutes(router)
 	_SetupCompanyRoutes(router)
 	_SetupUserRoutes(router)
-  _SetupEmployeeRoutes(router)
+	_SetupEmployeeRoutes(router)
 }
 
 func _SetupAuthRoutes(router *gin.RouterGroup) {
@@ -35,6 +35,7 @@ func _SetupUserRoutes(router *gin.RouterGroup) {
 	{
 		user.PATCH("/update/:id", controllers.UpdateUser)
 	}
+}
 
 func _SetupEmployeeRoutes(router *gin.RouterGroup) {
 	employee := router.Group("/employee")
@@ -42,5 +43,5 @@ func _SetupEmployeeRoutes(router *gin.RouterGroup) {
 		employee.POST("/add", controllers.AddEmployee)
 		employee.DELETE("/delete/:id", controllers.DeleteEmployee)
 		employee.GET("/all", controllers.GetAllEmployees)
-  }
+	}
 }

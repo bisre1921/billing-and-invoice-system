@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -29,7 +28,6 @@ import (
 // @Security BearerAuth
 func UpdateUser(c *gin.Context) {
 	userID := c.Param("id")
-	fmt.Println(userID)
 
 	idFromToken, ok := c.Get("userID")
 	if !ok {
@@ -52,7 +50,6 @@ func UpdateUser(c *gin.Context) {
 
 	var user models.User
 	if err := config.DB.Collection("users").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&user); err != nil {
-		fmt.Println(err)
 
 		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		return
