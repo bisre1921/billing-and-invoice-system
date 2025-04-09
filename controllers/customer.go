@@ -105,3 +105,32 @@ func UpdateCustomer(c *gin.Context) {
 		"message": "Customer updated successfully",
 	})
 }
+
+// DeleteCustomer godoc
+// @Summary Delete a customer by ID
+// @Description Business Owner or Employee deletes a customer
+// @Tags Customer
+// @Param id path string true "Customer ID"
+// @Success 200 {object} models.GenericResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /customer/delete/{id} [delete]
+// @Security BearerAuth
+func DeleteCustomer(c *gin.Context) {
+	customerID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(customerID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
+		return
+	}
+
+	result, err := config.DB.Collection("customers").DeleteOne(context.Background(), bson.M{"_id": objID})
+	if err != nil || result.DeletedCount == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Customer deletion failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Customer deleted successfully",
+	})
+}

@@ -228,6 +228,33 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /customer/delete/{id}:
+    delete:
+      description: Business Owner or Employee deletes a customer
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a customer by ID
+      tags:
+      - Customer
   /customer/register:
     post:
       consumes:
