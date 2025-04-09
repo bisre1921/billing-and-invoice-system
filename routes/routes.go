@@ -51,5 +51,6 @@ func _SetupCustomerRoutes(router *gin.RouterGroup) {
 	customer := router.Group("/customer")
 	{
 		customer.POST("/register", controllers.RegisterCustomer)
+		customer.PUT("/update/:id", controllers.UpdateCustomer)
 	}
 }
