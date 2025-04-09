@@ -496,6 +496,41 @@ paths:
       summary: Add a new item
       tags:
       - Item
+  /item/delete/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Business Owner or Employee deletes an item
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete an existing item
+      tags:
+      - Item
   /item/update/{id}:
     put:
       consumes:

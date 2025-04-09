@@ -101,3 +101,33 @@ func UpdateItem(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Item updated successfully"})
 }
+
+// DeleteItem godoc
+// @Summary Delete an existing item
+// @Description Business Owner or Employee deletes an item
+// @Tags Item
+// @Accept json
+// @Produce json
+// @Param id path string true "Item ID"
+// @Success 200 {object} models.GenericResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /item/delete/{id} [delete]
+// @Security BearerAuth
+func DeleteItem(c *gin.Context) {
+	id := c.Param("id")
+	itemID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		return
+	}
+
+	result, err := config.DB.Collection("items").DeleteOne(context.Background(), bson.M{"_id": itemID})
+	if err != nil || result.DeletedCount == 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete item"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Item deleted successfully"})
+}

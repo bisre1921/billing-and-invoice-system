@@ -63,5 +63,6 @@ func _SetupItemRoutes(router *gin.RouterGroup) {
 	{
 		item.POST("/add", controllers.AddItem)
 		item.PUT("/update/:id", controllers.UpdateItem)
+		item.DELETE("/delete/:id", controllers.DeleteItem)
 	}
 }
