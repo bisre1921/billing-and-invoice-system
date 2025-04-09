@@ -53,5 +53,6 @@ func _SetupCustomerRoutes(router *gin.RouterGroup) {
 		customer.POST("/register", controllers.RegisterCustomer)
 		customer.PUT("/update/:id", controllers.UpdateCustomer)
 		customer.DELETE("/delete/:id", controllers.DeleteCustomer)
+		customer.GET("/all", controllers.ListCustomers)
 	}
 }

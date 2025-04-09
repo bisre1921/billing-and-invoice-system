@@ -134,3 +134,29 @@ func DeleteCustomer(c *gin.Context) {
 		"message": "Customer deleted successfully",
 	})
 }
+
+// ListCustomers godoc
+// @Summary Get all customers
+// @Description Business Owner or Employee views all customers
+// @Tags Customer
+// @Produce json
+// @Success 200 {array} models.Customer
+// @Failure 500 {object} models.ErrorResponse
+// @Router /customer/all [get]
+// @Security BearerAuth
+func ListCustomers(c *gin.Context) {
+	cursor, err := config.DB.Collection("customers").Find(context.Background(), bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch customers"})
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	var customers []models.Customer
+	if err := cursor.All(context.Background(), &customers); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode customers"})
+		return
+	}
+
+	c.JSON(http.StatusOK, customers)
+}
