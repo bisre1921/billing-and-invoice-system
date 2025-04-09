@@ -496,6 +496,33 @@ paths:
       summary: Add a new item
       tags:
       - Item
+  /item/all:
+    get:
+      consumes:
+      - application/json
+      description: Shows all items if they exist, or a message if none are found
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Item'
+            type: array
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: View all items
+      tags:
+      - Item
   /item/delete/{id}:
     delete:
       consumes:

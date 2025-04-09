@@ -131,3 +131,36 @@ func DeleteItem(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Item deleted successfully"})
 }
+
+// ListItems godoc
+// @Summary View all items
+// @Description Shows all items if they exist, or a message if none are found
+// @Tags Item
+// @Accept json
+// @Produce json
+// @Success 200 {array} models.Item
+// @Failure 404 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /item/all [get]
+// @Security BearerAuth
+func ListItems(c *gin.Context) {
+	cursor, err := config.DB.Collection("items").Find(context.Background(), bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Something went wrong while retrieving items"})
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	var items []models.Item
+	if err := cursor.All(context.Background(), &items); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error decoding item list"})
+		return
+	}
+
+	if len(items) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "No items found in the system"})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
+}
