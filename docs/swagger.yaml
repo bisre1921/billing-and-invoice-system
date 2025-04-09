@@ -70,6 +70,29 @@ definitions:
       message:
         type: string
     type: object
+  models.Item:
+    properties:
+      buying_price:
+        type: number
+      company_id:
+        type: string
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      quantity:
+        type: integer
+      selling_price:
+        type: number
+      unit:
+        type: string
+      updated_at:
+        type: string
+    type: object
   models.LoginCredentials:
     properties:
       email:
@@ -441,6 +464,38 @@ paths:
       summary: Delete an employee
       tags:
       - Employee
+  /item/add:
+    post:
+      consumes:
+      - application/json
+      description: Business Owner or Employee adds a new item
+      parameters:
+      - description: Item Data
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/models.Item'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add a new item
+      tags:
+      - Item
   /user/update/{id}:
     patch:
       consumes:
