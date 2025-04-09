@@ -62,5 +62,6 @@ func _SetupItemRoutes(router *gin.RouterGroup) {
 	item := router.Group("/item")
 	{
 		item.POST("/add", controllers.AddItem)
+		item.PUT("/update/:id", controllers.UpdateItem)
 	}
 }
