@@ -70,6 +70,54 @@ definitions:
       message:
         type: string
     type: object
+  models.Invoice:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      customer_id:
+        type: string
+      date:
+        type: string
+      due_date:
+        type: string
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/models.InvoiceItem'
+        type: array
+      payment_date:
+        type: string
+      reference_number:
+        type: string
+      status:
+        type: string
+      terms:
+        type: string
+      updated_at:
+        type: string
+    required:
+    - customer_id
+    - date
+    - reference_number
+    type: object
+  models.InvoiceItem:
+    properties:
+      discount:
+        type: number
+      item_id:
+        type: string
+      item_name:
+        type: string
+      quantity:
+        type: integer
+      subtotal:
+        type: number
+      unit_price:
+        type: number
+    type: object
   models.Item:
     properties:
       buying_price:
@@ -464,6 +512,42 @@ paths:
       summary: Delete an employee
       tags:
       - Employee
+  /invoice/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new invoice for a customer with item list and auto-calculated
+        total.
+      parameters:
+      - description: Invoice data
+        in: body
+        name: invoice
+        required: true
+        schema:
+          $ref: '#/definitions/models.Invoice'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invoice generated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid invoice input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to generate invoice
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Generate a new invoice
+      tags:
+      - Invoices
   /item/add:
     post:
       consumes:
