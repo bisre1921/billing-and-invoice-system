@@ -512,6 +512,43 @@ paths:
       summary: Delete an employee
       tags:
       - Employee
+  /invoice/download/{id}:
+    get:
+      description: Download a specific invoice by ID
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/pdf
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: file
+        "400":
+          description: Invalid ID format
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Invoice not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to generate or send PDF
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Download invoice as PDF
+      tags:
+      - Invoices
   /invoice/generate:
     post:
       consumes:

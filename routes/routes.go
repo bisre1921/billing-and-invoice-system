@@ -74,5 +74,6 @@ func _SetupInvoiceRoutes(router *gin.RouterGroup) {
 	{
 		invoice.POST("/generate", controllers.GenerateInvoice)
 		invoice.POST("/send/:id", controllers.SendInvoice)
+		invoice.GET("/download/:id", controllers.DownloadInvoice)
 	}
 }

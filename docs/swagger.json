@@ -499,6 +499,62 @@
                 }
             }
         },
+        "/invoice/download/{id}": {
+            "get": {
+                "description": "Download a specific invoice by ID",
+                "produces": [
+                    "application/pdf"
+                ],
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Download invoice as PDF",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid ID format",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Invoice not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to generate or send PDF",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/invoice/generate": {
             "post": {
                 "description": "Generate a new invoice for a customer with item list and auto-calculated total.",

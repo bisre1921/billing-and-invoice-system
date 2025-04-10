@@ -9,6 +9,7 @@ import (
 	"github.com/bisre1921/billing-and-invoice-system/config"
 	"github.com/bisre1921/billing-and-invoice-system/models"
 	"github.com/gin-gonic/gin"
+	"github.com/jung-kurt/gofpdf"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"gopkg.in/gomail.v2"
@@ -120,4 +121,72 @@ func SendInvoice(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice sent successfully to " + customer.Email})
+}
+
+// DownloadInvoice godoc
+// @Summary Download invoice as PDF
+// @Description Download a specific invoice by ID
+// @Tags Invoices
+// @Produce application/pdf
+// @Param id path string true "Invoice ID"
+// @Success 200 {file} binary
+// @Failure 400 {object} map[string]string "Invalid ID format"
+// @Failure 404 {object} map[string]string "Invoice not found"
+// @Failure 500 {object} map[string]string "Failed to generate or send PDF"
+// @Router /invoice/download/{id} [get]
+func DownloadInvoice(c *gin.Context) {
+	invoiceID := c.Param("id")
+
+	objID, err := primitive.ObjectIDFromHex(invoiceID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice ID"})
+		return
+	}
+
+	var invoice models.Invoice
+	err = config.DB.Collection("invoices").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&invoice)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		return
+	}
+
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(40, 10, "Invoice")
+	pdf.Ln(10)
+
+	pdf.SetFont("Arial", "", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("Invoice ID: %s", invoice.ID))
+	pdf.Ln(6)
+	pdf.Cell(40, 10, fmt.Sprintf("Reference #: %s", invoice.ReferenceNumber))
+	pdf.Ln(6)
+	pdf.Cell(40, 10, fmt.Sprintf("Date: %s", invoice.Date.Format("2006-01-02")))
+	pdf.Ln(6)
+	pdf.Cell(40, 10, fmt.Sprintf("Due Date: %s", invoice.DueDate.Format("2006-01-02")))
+	pdf.Ln(6)
+
+	pdf.Ln(10)
+	pdf.SetFont("Arial", "B", 14)
+	pdf.Cell(40, 10, "Items:")
+	pdf.Ln(8)
+
+	pdf.SetFont("Arial", "", 12)
+	for _, item := range invoice.Items {
+		pdf.CellFormat(0, 8, fmt.Sprintf("- %s x%d @ %.2f each (%.0f%% off) = %.2f", item.ItemName, item.Quantity, item.UnitPrice, item.Discount, item.Subtotal), "", 1, "", false, 0, "")
+	}
+
+	pdf.Ln(6)
+	pdf.SetFont("Arial", "B", 12)
+	pdf.Cell(40, 10, fmt.Sprintf("Total Amount: %.2f", invoice.Amount))
+
+	err = pdf.Output(c.Writer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate PDF"})
+		return
+	}
+
+	c.Header("Content-Disposition", "attachment; filename=invoice_"+invoice.ID+".pdf")
+	c.Header("Content-Type", "application/pdf")
 }
