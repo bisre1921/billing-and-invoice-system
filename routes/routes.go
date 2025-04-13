@@ -38,6 +38,7 @@ func _SetupUserRoutes(router *gin.RouterGroup) {
 	user.Use(middleware.AuthMiddleware())
 	{
 		user.PATCH("/update/:id", controllers.UpdateUser)
+		user.GET("/:id", controllers.GetUser)
 	}
 }
 
