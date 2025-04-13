@@ -29,6 +29,7 @@ func _SetupCompanyRoutes(router *gin.RouterGroup) {
 	company.Use(middleware.AuthMiddleware())
 	{
 		company.POST("/create", controllers.CreateCompany)
+		company.GET("/:id", controllers.GetCompany)
 	}
 }
 
