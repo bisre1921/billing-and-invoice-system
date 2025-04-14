@@ -345,7 +345,15 @@ paths:
       - Company
   /customer/all:
     get:
-      description: Business Owner or Employee views all customers
+      consumes:
+      - application/json
+      description: Business Owner views all customers for their company
+      parameters:
+      - description: Company ID
+        in: query
+        name: company_id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -355,13 +363,17 @@ paths:
             items:
               $ref: '#/definitions/models.Customer'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get all customers
+      summary: Get all customers for a company
       tags:
       - Customer
   /customer/delete/{id}:

@@ -239,14 +239,26 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Business Owner or Employee views all customers",
+                "description": "Business Owner views all customers for their company",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Customer"
                 ],
-                "summary": "Get all customers",
+                "summary": "Get all customers for a company",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Company ID",
+                        "name": "company_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -255,6 +267,12 @@ const docTemplate = `{
                             "items": {
                                 "$ref": "#/definitions/models.Customer"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
                     "500": {

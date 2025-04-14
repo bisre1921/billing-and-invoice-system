@@ -135,17 +135,33 @@ func DeleteCustomer(c *gin.Context) {
 	})
 }
 
-// ListCustomers godoc
-// @Summary Get all customers
-// @Description Business Owner or Employee views all customers
+// GetAllCustomers godoc
+// @Summary Get all customers for a company
+// @Description Business Owner views all customers for their company
 // @Tags Customer
+// @Accept json
 // @Produce json
+// @Param company_id query string true "Company ID"
 // @Success 200 {array} models.Customer
+// @Failure 400 {object} models.ErrorResponse
 // @Failure 500 {object} models.ErrorResponse
 // @Router /customer/all [get]
 // @Security BearerAuth
 func ListCustomers(c *gin.Context) {
-	cursor, err := config.DB.Collection("customers").Find(context.Background(), bson.M{})
+	companyIDParam := c.Query("company_id")
+	if companyIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Company ID is required"})
+		return
+	}
+
+	companyID, err := primitive.ObjectIDFromHex(companyIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid company ID"})
+		return
+	}
+
+	filter := bson.M{"company_id": companyID}
+	cursor, err := config.DB.Collection("customers").Find(context.Background(), filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch customers"})
 		return
