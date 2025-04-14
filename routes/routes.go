@@ -29,6 +29,7 @@ func _SetupCompanyRoutes(router *gin.RouterGroup) {
 	company.Use(middleware.AuthMiddleware())
 	{
 		company.POST("/create", controllers.CreateCompany)
+		company.GET("/:id", controllers.GetCompany)
 	}
 }
 
@@ -37,6 +38,7 @@ func _SetupUserRoutes(router *gin.RouterGroup) {
 	user.Use(middleware.AuthMiddleware())
 	{
 		user.PATCH("/update/:id", controllers.UpdateUser)
+		user.GET("/:id", controllers.GetUser)
 	}
 }
 
