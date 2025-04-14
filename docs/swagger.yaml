@@ -568,6 +568,38 @@ paths:
       summary: Delete an employee
       tags:
       - Employee
+  /invoice/{id}:
+    get:
+      description: Retrieve a specific invoice by its unique identifier
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invoice retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid invoice ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Invoice not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get invoice by ID
+      tags:
+      - Invoices
   /invoice/download/{id}:
     get:
       description: Download a specific invoice by ID

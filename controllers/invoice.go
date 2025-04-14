@@ -54,6 +54,34 @@ func GenerateInvoice(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
 }
 
+// GetInvoice godoc
+// @Summary Get invoice by ID
+// @Description Retrieve a specific invoice by its unique identifier
+// @Tags Invoices
+// @Produce json
+// @Param id path string true "Invoice ID"
+// @Success 200 {object} map[string]interface{} "Invoice retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid invoice ID"
+// @Failure 404 {object} map[string]string "Invoice not found"
+// @Router /invoice/{id} [get]
+func GetInvoice(c *gin.Context) {
+	invoiceID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(invoiceID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice ID"})
+		return
+	}
+
+	var invoice models.Invoice
+	err = config.DB.Collection("invoices").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&invoice)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"invoice": invoice})
+}
+
 // SendInvoice godoc
 // @Summary Send an invoice via email
 // @Description Send a generated invoice to the customer via email
