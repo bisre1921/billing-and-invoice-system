@@ -176,3 +176,33 @@ func ListCustomers(c *gin.Context) {
 
 	c.JSON(http.StatusOK, customers)
 }
+
+// GetCustomer godoc
+// @Summary Get a customer by ID
+// @Description Business Owner or Employee fetches a specific customer's information
+// @Tags Customer
+// @Accept json
+// @Produce json
+// @Param id path string true "Customer ID"
+// @Success 200 {object} models.Customer
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /customer/{id} [get]
+// @Security BearerAuth
+func GetCustomer(c *gin.Context) {
+	customerID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(customerID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
+		return
+	}
+
+	var customer models.Customer
+	err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&customer)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch customer"})
+		return
+	}
+
+	c.JSON(http.StatusOK, customer)
+}

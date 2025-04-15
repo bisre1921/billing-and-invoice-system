@@ -51,8 +51,7 @@ func GenerateInvoice(c *gin.Context) {
 		return
 	}
 
-	// Add the ID to the invoice object
-	invoice.ID = res.InsertedID.(primitive.ObjectID) // make sure Invoice.ID is of type primitive.ObjectID
+	invoice.ID = res.InsertedID.(primitive.ObjectID)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
 

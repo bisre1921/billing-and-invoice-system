@@ -343,6 +343,37 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /customer/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Business Owner or Employee fetches a specific customer's information
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Customer'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a customer by ID
+      tags:
+      - Customer
   /customer/all:
     get:
       consumes:
