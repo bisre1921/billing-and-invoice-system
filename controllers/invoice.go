@@ -45,13 +45,17 @@ func GenerateInvoice(c *gin.Context) {
 	invoice.CreatedAt = time.Now()
 	invoice.UpdatedAt = time.Now()
 
-	_, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
+	res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice"})
 		return
 	}
 
+	// Add the ID to the invoice object
+	invoice.ID = res.InsertedID.(primitive.ObjectID) // make sure Invoice.ID is of type primitive.ObjectID
+
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
+
 }
 
 // GetInvoice godoc
@@ -79,7 +83,7 @@ func GetInvoice(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"invoice": invoice})
+	c.JSON(http.StatusOK, invoice)
 }
 
 // SendInvoice godoc
@@ -215,6 +219,6 @@ func DownloadInvoice(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Disposition", "attachment; filename=invoice_"+invoice.ID+".pdf")
+	c.Header("Content-Disposition", "attachment; filename=invoice_"+invoice.ID.Hex()+".pdf")
 	c.Header("Content-Type", "application/pdf")
 }
