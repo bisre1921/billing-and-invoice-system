@@ -9,6 +9,7 @@ import (
 type Invoice struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	CustomerID      string             `json:"customer_id" bson:"customer_id" binding:"required"`
+	CompanyID       string             `json:"company_id" bson:"company_id" binding:"required"`
 	ReferenceNumber string             `json:"reference_number" bson:"reference_number" binding:"required"`
 	Date            time.Time          `json:"date" bson:"date" binding:"required"`
 	Terms           string             `json:"terms" bson:"terms"`

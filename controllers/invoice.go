@@ -85,6 +85,40 @@ func GetInvoice(c *gin.Context) {
 	c.JSON(http.StatusOK, invoice)
 }
 
+// GetInvoicesByCompanyID godoc
+// @Summary Get all invoices for a specific company
+// @Description Retrieve all invoices associated with a given company ID.
+// @Tags Invoices
+// @Produce json
+// @Param company_id path string true "Company ID"
+// @Success 200 {array} []models.Invoice "Invoices retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid company ID"
+// @Failure 404 {object} map[string]string "No invoices found for this company"
+// @Failure 500 {object} map[string]string "Failed to retrieve invoices"
+// @Router /invoice/companies/{company_id} [get]
+func GetInvoicesByCompanyID(c *gin.Context) {
+	companyID := c.Param("company_id")
+
+	var invoices []models.Invoice
+	cursor, err := config.DB.Collection("invoices").Find(context.Background(), bson.M{"company_id": companyID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve invoices"})
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	if err := cursor.All(context.Background(), &invoices); err != nil {
+		if err.Error() == "mongo: no documents in result" {
+			c.JSON(http.StatusNotFound, gin.H{"message": "No invoices found for this company"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode invoices"})
+		return
+	}
+
+	c.JSON(http.StatusOK, invoices)
+}
+
 // SendInvoice godoc
 // @Summary Send an invoice via email
 // @Description Send a generated invoice to the customer via email

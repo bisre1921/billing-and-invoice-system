@@ -637,6 +637,68 @@ const docTemplate = `{
                 }
             }
         },
+        "/invoice/companies/{company_id}": {
+            "get": {
+                "description": "Retrieve all invoices associated with a given company ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Get all invoices for a specific company",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Company ID",
+                        "name": "company_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoices retrieved successfully",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/models.Invoice"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid company ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No invoices found for this company",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve invoices",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/invoice/download/{id}": {
             "get": {
                 "description": "Download a specific invoice by ID",
@@ -1297,6 +1359,7 @@ const docTemplate = `{
         "models.Invoice": {
             "type": "object",
             "required": [
+                "company_id",
                 "customer_id",
                 "date",
                 "reference_number"
@@ -1304,6 +1367,9 @@ const docTemplate = `{
             "properties": {
                 "amount": {
                     "type": "number"
+                },
+                "company_id": {
+                    "type": "string"
                 },
                 "created_at": {
                     "type": "string"

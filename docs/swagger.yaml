@@ -74,6 +74,8 @@ definitions:
     properties:
       amount:
         type: number
+      company_id:
+        type: string
       created_at:
         type: string
       customer_id:
@@ -99,6 +101,7 @@ definitions:
       updated_at:
         type: string
     required:
+    - company_id
     - customer_id
     - date
     - reference_number
@@ -629,6 +632,47 @@ paths:
               type: string
             type: object
       summary: Get invoice by ID
+      tags:
+      - Invoices
+  /invoice/companies/{company_id}:
+    get:
+      description: Retrieve all invoices associated with a given company ID.
+      parameters:
+      - description: Company ID
+        in: path
+        name: company_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invoices retrieved successfully
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.Invoice'
+              type: array
+            type: array
+        "400":
+          description: Invalid company ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No invoices found for this company
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to retrieve invoices
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all invoices for a specific company
       tags:
       - Invoices
   /invoice/download/{id}:
