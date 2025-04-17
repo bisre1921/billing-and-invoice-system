@@ -132,3 +132,81 @@ func GetAllEmployees(c *gin.Context) {
 
 	c.JSON(http.StatusOK, employees)
 }
+
+// GetEmployee godoc
+// @Summary Get an employee by ID
+// @Description Business Owner views an employee by ID
+// @Tags Employee
+// @Accept json
+// @Produce json
+// @Param id path string true "Employee ID"
+// @Success 200 {object} models.Employee
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /employee/{id} [get]
+// @Security BearerAuth
+func GetEmployee(c *gin.Context) {
+	id := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
+		return
+	}
+
+	filter := bson.M{"_id": objID}
+	var employee models.Employee
+	err = config.DB.Collection("employees").FindOne(context.Background(), filter).Decode(&employee)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch employee"})
+		return
+	}
+
+	c.JSON(http.StatusOK, employee)
+}
+
+// UpdateEmployee godoc
+// @Summary Update an employee
+// @Description Business Owner updates an employee by ID
+// @Tags Employee
+// @Accept json
+// @Produce json
+// @Param id path string true "Employee ID"
+// @Param employee body models.Employee true "Employee Data"
+// @Success 200 {object} models.GenericResponse
+// @Failure 400 {object} models.ErrorResponse
+// @Failure 500 {object} models.ErrorResponse
+// @Router /employee/update/{id} [put]
+// @Security BearerAuth
+func UpdateEmployee(c *gin.Context) {
+	id := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid employee ID"})
+		return
+	}
+
+	var employee models.Employee
+	if err := c.ShouldBindJSON(&employee); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	employee.UpdatedAt = time.Now()
+
+	filter := bson.M{"_id": objID}
+	update := bson.M{"$set": employee}
+	result, err := config.DB.Collection("employees").UpdateOne(context.Background(), filter, update)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update employee"})
+		return
+	}
+
+	if result.MatchedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Employee not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Employee updated successfully",
+	})
+}

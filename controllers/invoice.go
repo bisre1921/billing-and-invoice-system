@@ -45,13 +45,78 @@ func GenerateInvoice(c *gin.Context) {
 	invoice.CreatedAt = time.Now()
 	invoice.UpdatedAt = time.Now()
 
-	_, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
+	res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice"})
 		return
 	}
 
+	invoice.ID = res.InsertedID.(primitive.ObjectID)
+
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
+
+}
+
+// GetInvoice godoc
+// @Summary Get invoice by ID
+// @Description Retrieve a specific invoice by its unique identifier
+// @Tags Invoices
+// @Produce json
+// @Param id path string true "Invoice ID"
+// @Success 200 {object} map[string]interface{} "Invoice retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid invoice ID"
+// @Failure 404 {object} map[string]string "Invoice not found"
+// @Router /invoice/{id} [get]
+func GetInvoice(c *gin.Context) {
+	invoiceID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(invoiceID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice ID"})
+		return
+	}
+
+	var invoice models.Invoice
+	err = config.DB.Collection("invoices").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&invoice)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, invoice)
+}
+
+// GetInvoicesByCompanyID godoc
+// @Summary Get all invoices for a specific company
+// @Description Retrieve all invoices associated with a given company ID.
+// @Tags Invoices
+// @Produce json
+// @Param company_id path string true "Company ID"
+// @Success 200 {array} []models.Invoice "Invoices retrieved successfully"
+// @Failure 400 {object} map[string]string "Invalid company ID"
+// @Failure 404 {object} map[string]string "No invoices found for this company"
+// @Failure 500 {object} map[string]string "Failed to retrieve invoices"
+// @Router /invoice/companies/{company_id} [get]
+func GetInvoicesByCompanyID(c *gin.Context) {
+	companyID := c.Param("company_id")
+
+	var invoices []models.Invoice
+	cursor, err := config.DB.Collection("invoices").Find(context.Background(), bson.M{"company_id": companyID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve invoices"})
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	if err := cursor.All(context.Background(), &invoices); err != nil {
+		if err.Error() == "mongo: no documents in result" {
+			c.JSON(http.StatusNotFound, gin.H{"message": "No invoices found for this company"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode invoices"})
+		return
+	}
+
+	c.JSON(http.StatusOK, invoices)
 }
 
 // SendInvoice godoc
@@ -187,6 +252,6 @@ func DownloadInvoice(c *gin.Context) {
 		return
 	}
 
-	c.Header("Content-Disposition", "attachment; filename=invoice_"+invoice.ID+".pdf")
+	c.Header("Content-Disposition", "attachment; filename=invoice_"+invoice.ID.Hex()+".pdf")
 	c.Header("Content-Type", "application/pdf")
 }

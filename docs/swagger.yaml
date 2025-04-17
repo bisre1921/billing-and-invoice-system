@@ -74,6 +74,8 @@ definitions:
     properties:
       amount:
         type: number
+      company_id:
+        type: string
       created_at:
         type: string
       customer_id:
@@ -99,6 +101,7 @@ definitions:
       updated_at:
         type: string
     required:
+    - company_id
     - customer_id
     - date
     - reference_number
@@ -343,9 +346,48 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /customer/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Business Owner or Employee fetches a specific customer's information
+      parameters:
+      - description: Customer ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Customer'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a customer by ID
+      tags:
+      - Customer
   /customer/all:
     get:
-      description: Business Owner or Employee views all customers
+      consumes:
+      - application/json
+      description: Business Owner views all customers for their company
+      parameters:
+      - description: Company ID
+        in: query
+        name: company_id
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -355,13 +397,17 @@ paths:
             items:
               $ref: '#/definitions/models.Customer'
             type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/models.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Get all customers
+      summary: Get all customers for a company
       tags:
       - Customer
   /customer/delete/{id}:
@@ -460,6 +506,37 @@ paths:
       summary: Update a customer by ID
       tags:
       - Customer
+  /employee/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Business Owner views an employee by ID
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Employee'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an employee by ID
+      tags:
+      - Employee
   /employee/add:
     post:
       consumes:
@@ -556,6 +633,116 @@ paths:
       summary: Delete an employee
       tags:
       - Employee
+  /employee/update/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Business Owner updates an employee by ID
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Employee Data
+        in: body
+        name: employee
+        required: true
+        schema:
+          $ref: '#/definitions/models.Employee'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an employee
+      tags:
+      - Employee
+  /invoice/{id}:
+    get:
+      description: Retrieve a specific invoice by its unique identifier
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invoice retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid invoice ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Invoice not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get invoice by ID
+      tags:
+      - Invoices
+  /invoice/companies/{company_id}:
+    get:
+      description: Retrieve all invoices associated with a given company ID.
+      parameters:
+      - description: Company ID
+        in: path
+        name: company_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invoices retrieved successfully
+          schema:
+            items:
+              items:
+                $ref: '#/definitions/models.Invoice'
+              type: array
+            type: array
+        "400":
+          description: Invalid company ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No invoices found for this company
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to retrieve invoices
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all invoices for a specific company
+      tags:
+      - Invoices
   /invoice/download/{id}:
     get:
       description: Download a specific invoice by ID

@@ -48,6 +48,8 @@ func _SetupEmployeeRoutes(router *gin.RouterGroup) {
 		employee.POST("/add", controllers.AddEmployee)
 		employee.DELETE("/delete/:id", controllers.DeleteEmployee)
 		employee.GET("/all", controllers.GetAllEmployees)
+		employee.GET("/:id", controllers.GetEmployee)
+		employee.PUT("/update/:id", controllers.UpdateEmployee)
 	}
 }
 
@@ -58,6 +60,7 @@ func _SetupCustomerRoutes(router *gin.RouterGroup) {
 		customer.PUT("/update/:id", controllers.UpdateCustomer)
 		customer.DELETE("/delete/:id", controllers.DeleteCustomer)
 		customer.GET("/all", controllers.ListCustomers)
+		customer.GET("/:id", controllers.GetCustomer)
 	}
 }
 
@@ -75,6 +78,8 @@ func _SetupInvoiceRoutes(router *gin.RouterGroup) {
 	invoice := router.Group("/invoice")
 	{
 		invoice.POST("/generate", controllers.GenerateInvoice)
+		invoice.GET("/:id", controllers.GetInvoice)
+		invoice.GET("/companies/:company_id", controllers.GetInvoicesByCompanyID)
 		invoice.POST("/send/:id", controllers.SendInvoice)
 		invoice.GET("/download/:id", controllers.DownloadInvoice)
 	}
