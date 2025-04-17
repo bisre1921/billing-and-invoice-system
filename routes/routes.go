@@ -48,6 +48,8 @@ func _SetupEmployeeRoutes(router *gin.RouterGroup) {
 		employee.POST("/add", controllers.AddEmployee)
 		employee.DELETE("/delete/:id", controllers.DeleteEmployee)
 		employee.GET("/all", controllers.GetAllEmployees)
+		employee.GET("/:id", controllers.GetEmployee)
+		employee.PUT("/update/:id", controllers.UpdateEmployee)
 	}
 }
 

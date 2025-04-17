@@ -506,6 +506,37 @@ paths:
       summary: Update a customer by ID
       tags:
       - Customer
+  /employee/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Business Owner views an employee by ID
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Employee'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an employee by ID
+      tags:
+      - Employee
   /employee/add:
     post:
       consumes:
@@ -600,6 +631,43 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete an employee
+      tags:
+      - Employee
+  /employee/update/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Business Owner updates an employee by ID
+      parameters:
+      - description: Employee ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Employee Data
+        in: body
+        name: employee
+        required: true
+        schema:
+          $ref: '#/definitions/models.Employee'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update an employee
       tags:
       - Employee
   /invoice/{id}:
