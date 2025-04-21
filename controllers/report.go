@@ -148,7 +148,7 @@ func DownloadReport(c *gin.Context) {
 	pdf.Ln(10)
 	pdf.Cell(40, 10, "Description: "+report.Description)
 	pdf.Ln(10)
-	pdf.Cell(40, 10, "Created By: "+report.CreatedBy.Hex())
+	pdf.Cell(40, 10, "Created By: "+report.CreatedBy)
 	pdf.Ln(10)
 	pdf.Cell(40, 10, "Created Date: "+report.CreatedDate.Format(time.RFC3339))
 	pdf.Ln(10)

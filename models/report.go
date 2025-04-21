@@ -11,7 +11,7 @@ type Report struct {
 	CompanyID        string             `json:"company_id" bson:"company_id"`
 	Title            string             `json:"title"`
 	Description      string             `json:"description"`
-	CreatedBy        primitive.ObjectID `json:"created_by" bson:"created_by"`
+	CreatedBy        string             `json:"created_by" bson:"created_by"`
 	CreatedDate      time.Time          `json:"created_date"`
 	LastModifiedDate time.Time          `json:"last_modified_date"`
 	Type             string             `json:"type"`

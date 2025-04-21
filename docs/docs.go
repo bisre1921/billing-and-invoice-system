@@ -1815,9 +1815,6 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "file_path": {
-                    "type": "string"
-                },
                 "id": {
                     "type": "string"
                 },
