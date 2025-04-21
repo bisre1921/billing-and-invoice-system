@@ -17,5 +17,4 @@ type Report struct {
 	Type             string             `json:"type"`
 	Status           string             `json:"status"`
 	Content          string             `json:"content"`
-	FilePath         string             `json:"file_path,omitempty"`
 }

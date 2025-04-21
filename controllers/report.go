@@ -27,7 +27,7 @@ import (
 func GenerateReport(c *gin.Context) {
 	var report models.Report
 	if err := c.ShouldBindJSON(&report); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid report input", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report input", "details": err.Error()})
 		return
 	}
 
@@ -36,13 +36,13 @@ func GenerateReport(c *gin.Context) {
 
 	res, err := config.DB.Collection("reports").InsertOne(context.Background(), report)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate report"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate report"})
 		return
 	}
 
 	report.ID = res.InsertedID.(primitive.ObjectID)
 
-	c.JSON(200, gin.H{"message": "Report generated successfully", "report": report})
+	c.JSON(http.StatusOK, gin.H{"message": "Report generated successfully", "report": report})
 }
 
 // GetReport godoc
@@ -60,18 +60,18 @@ func GetReport(c *gin.Context) {
 	reportId := c.Param("id")
 	objID, err := primitive.ObjectIDFromHex(reportId)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "Invalid report ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
 		return
 	}
 
 	var report models.Report
 	err = config.DB.Collection("reports").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&report)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to get report"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get report"})
 		return
 	}
 
-	c.JSON(200, gin.H{"report": report})
+	c.JSON(http.StatusOK, gin.H{"report": report})
 }
 
 // GetReportsByCompanyID godoc
@@ -91,7 +91,7 @@ func GetReportsByCompanyID(c *gin.Context) {
 	var reports []models.Report
 	cursor, err := config.DB.Collection("reports").Find(context.Background(), bson.M{"company_id": companyId})
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to get reports"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve reports"})
 		return
 	}
 	defer cursor.Close(context.Background())
