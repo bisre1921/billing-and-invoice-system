@@ -154,6 +154,31 @@ definitions:
     - email
     - password
     type: object
+  models.Report:
+    properties:
+      company_id:
+        type: string
+      content:
+        type: string
+      created_by:
+        type: string
+      created_date:
+        type: string
+      description:
+        type: string
+      file_path:
+        type: string
+      id:
+        type: string
+      last_modified_date:
+        type: string
+      status:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    type: object
   models.TokenResponse:
     properties:
       token:
@@ -990,6 +1015,144 @@ paths:
       summary: Update an existing item
       tags:
       - Item
+  /report/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get a report by ID
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Report retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid report ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to get report
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a report by ID
+      tags:
+      - Reports
+  /report/companies/{company_id}:
+    get:
+      consumes:
+      - application/json
+      description: Get all reports for a specific company
+      parameters:
+      - description: Company ID
+        in: path
+        name: company_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Reports retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/models.Report'
+            type: array
+        "400":
+          description: Invalid company ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to get reports
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get all reports for a specific company
+      tags:
+      - Reports
+  /report/download/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Download a report by ID
+      parameters:
+      - description: Report ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Report downloaded successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid report ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to download report
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Download a report by ID
+      tags:
+      - Reports
+  /report/generate:
+    post:
+      consumes:
+      - application/json
+      description: Generate a new report
+      parameters:
+      - description: Report data
+        in: body
+        name: report
+        required: true
+        schema:
+          $ref: '#/definitions/models.Report'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Report generated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid report input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to generate report
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Generate a new report
+      tags:
+      - Reports
   /user/{id}:
     get:
       consumes:

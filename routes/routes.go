@@ -14,6 +14,7 @@ func SetupAllRoutes(router *gin.RouterGroup) {
 	_SetupCustomerRoutes(router)
 	_SetupItemRoutes(router)
 	_SetupInvoiceRoutes(router)
+	_SetupReportRoutes(router)
 }
 
 func _SetupAuthRoutes(router *gin.RouterGroup) {
@@ -82,5 +83,15 @@ func _SetupInvoiceRoutes(router *gin.RouterGroup) {
 		invoice.GET("/companies/:company_id", controllers.GetInvoicesByCompanyID)
 		invoice.POST("/send/:id", controllers.SendInvoice)
 		invoice.GET("/download/:id", controllers.DownloadInvoice)
+	}
+}
+
+func _SetupReportRoutes(router *gin.RouterGroup) {
+	report := router.Group("/report")
+	{
+		report.POST("/generate", controllers.GenerateReport)
+		report.GET("/:id", controllers.GetReport)
+		report.GET("/companies/:company_id", controllers.GetReportsByCompanyID)
+		report.GET("/download/:id", controllers.DownloadReport)
 	}
 }

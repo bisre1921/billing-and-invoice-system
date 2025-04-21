@@ -8,7 +8,7 @@ import (
 
 type Report struct {
 	ID               primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	CompanyID        string             `json:"company_id"`
+	CompanyID        string             `json:"company_id" bson:"company_id"`
 	Title            string             `json:"title"`
 	Description      string             `json:"description"`
 	CreatedBy        primitive.ObjectID `json:"created_by" bson:"created_by"`
