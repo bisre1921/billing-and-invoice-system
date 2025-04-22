@@ -369,6 +369,40 @@ paths:
       summary: Creates a new company
       tags:
       - Company
+  /company/user/{user_id}:
+    get:
+      consumes:
+      - application/json
+      description: Checks if a company exists with the given user ID as the owner
+      parameters:
+      - description: User ID to check for
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Company ID if found, or empty object if not
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Check if a user has a company
+      tags:
+      - Company
   /customer/{id}:
     get:
       consumes:

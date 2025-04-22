@@ -31,6 +31,7 @@ func _SetupCompanyRoutes(router *gin.RouterGroup) {
 	{
 		company.POST("/create", controllers.CreateCompany)
 		company.GET("/:id", controllers.GetCompany)
+		company.GET("user/:user_id", controllers.CheckCompanyForUser)
 	}
 }
 
