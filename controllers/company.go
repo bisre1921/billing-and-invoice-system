@@ -87,3 +87,39 @@ func GetCompany(c *gin.Context) {
 
 	c.JSON(http.StatusOK, company)
 }
+
+// CheckCompanyForUser godoc
+// @Summary Check if a user has a company
+// @Description Checks if a company exists with the given user ID as the owner
+// @Tags Company
+// @Accept json
+// @Produce json
+// @Param user_id path string true "User ID to check for"
+// @Success 200 {object} map[string]interface{} "Company ID if found, or empty object if not"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 500 {object} map[string]interface{} "Internal Server Error"
+// @Router /company/user/{user_id} [get]
+// @Security BearerAuth
+func CheckCompanyForUser(c *gin.Context) {
+	userID := c.Param("user_id")
+
+	tokenUserID, ok := c.Get("userID")
+	if !ok || tokenUserID.(string) != userID {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized to check company for this user."})
+		return
+	}
+
+	var company models.Company
+	err := config.DB.Collection("companies").FindOne(context.Background(), bson.M{"owner": userID}).Decode(&company)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusOK, gin.H{})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"company_id": company.ID.Hex()})
+}

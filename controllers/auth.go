@@ -91,10 +91,12 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	expirationTime := time.Now().Add(24 * time.Hour).Unix()
+
 	claims := jwt.MapClaims{
-		"user_id": user.ID,
+		"user_id": user.ID.Hex(),
 		"email":   user.Email,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		"exp":     expirationTime,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -106,5 +108,10 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"token": tokenString})
+	c.JSON(http.StatusOK, gin.H{
+		"token":      tokenString,
+		"user_id":    user.ID.Hex(),
+		"email":      user.Email,
+		"expires_in": 24 * 60 * 60,
+	})
 }
