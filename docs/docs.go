@@ -1921,6 +1921,12 @@ const docTemplate = `{
                 "address": {
                     "type": "string"
                 },
+                "company_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "created_at": {
                     "type": "string"
                 },

@@ -10,6 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"fmt"
+	"os"
+	"net/smtp"
 )
 
 // AddEmployee godoc
@@ -25,22 +28,71 @@ import (
 // @Router /employee/add [post]
 // @Security BearerAuth
 func AddEmployee(c *gin.Context) {
-	var employee models.Employee
+	var invitationRequest models.EmployeeInvitationRequest
 
-	if err := c.ShouldBindJSON(&employee); err != nil {
+	if err := c.ShouldBindJSON(&invitationRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Validate Company ID
-	if employee.CompanyID.IsZero() {
+	if invitationRequest.CompanyID.IsZero() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "CompanyID is required"})
 		return
 	}
 
-	employee.CreatedAt = time.Now()
-	employee.UpdatedAt = time.Now()
+	// Construct Employee struct
+	employee := models.Employee{
+		Name:      invitationRequest.Name,
+		Email:     invitationRequest.Email,
+		Phone:     invitationRequest.Phone,
+		Address:   invitationRequest.Address,
+		Position:  invitationRequest.Position,
+		CompanyID: invitationRequest.CompanyID,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 
+	// Insert Invitation
+	token := invitationRequest.CompanyID.Hex()
+	invitation := models.Invitation{
+		Token:     token,
+		Email:     invitationRequest.Email,
+		CompanyID: invitationRequest.CompanyID,
+		CreatedAt: time.Now(),
+	}
+	_, err := config.DB.Collection("invitations").InsertOne(context.Background(), invitation)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create invitation"})
+		return
+	}
+
+	// Fetch company and send email
+	company, err := fetchCompanyByID(invitationRequest.CompanyID)
+	if err != nil {
+		fmt.Println("Error fetching company for invitation email", err)
+	}
+
+	frontendURL := os.Getenv("FRONTEND_URL")
+	invitationLink := fmt.Sprintf("%s/auth/RegisterUser?token=%s", frontendURL, token)
+	subject := "Invitation to Join " + company.Name
+	body := fmt.Sprintf(`
+		You have been invited to join %s as an employee.
+
+		Please click the link below to accept the invitation and create your account:
+		%s
+
+		If you were not expecting this email, please ignore it.
+
+		Best regards,
+	`, company.Name, invitationLink)
+
+	err = sendEmail(invitationRequest.Email, subject, body)
+	if err != nil {
+		fmt.Println("Error sending invitation email", err)
+	}
+
+	// Save employee
 	result, err := config.DB.Collection("employees").InsertOne(context.Background(), employee)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add employee"})
@@ -48,9 +100,28 @@ func AddEmployee(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Employee added successfully",
+		"message": "Employee added successfully, invitation sent successfully",
 		"id":      result.InsertedID,
 	})
+}
+
+
+func fetchCompanyByID(companyID primitive.ObjectID) (models.Company, error) {
+	var company models.Company
+	err := config.DB.Collection("companies").FindOne(context.Background(), bson.M{"_id": companyID}).Decode(&company)
+	return company, err
+}
+
+func sendEmail(to, subject, body string) error {
+	from := os.Getenv("EMAIL_USERNAME")
+	password := os.Getenv("EMAIL_PASSWORD")
+	host := os.Getenv("EMAIL_HOST")
+	port := os.Getenv("EMAIL_PORT")
+
+	auth := smtp.PlainAuth("", from, password, host)
+	message := []byte(fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", to, subject, body))
+
+	return smtp.SendMail(fmt.Sprintf("%s:%s", host, port), auth, from, []string{to}, message)
 }
 
 // DeleteEmployee godoc
