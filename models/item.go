@@ -17,4 +17,5 @@ type Item struct {
 	CompanyID    primitive.ObjectID `json:"company_id" bson:"company_id"`
 	CreatedAt    time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt    time.Time          `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
+	Discount	  float64            `json:"discount" bson:"discount"`
 }

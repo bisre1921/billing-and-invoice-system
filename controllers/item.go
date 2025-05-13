@@ -164,3 +164,45 @@ func ListItems(c *gin.Context) {
 
 	c.JSON(http.StatusOK, items)
 }
+
+// GetItemsByCompanyID godoc
+// @Summary Get all items for a specific company
+// @Description Retrieves all items belonging to a specific company.
+// @Tags Item
+// @Accept json
+// @Produce json
+// @Param company_id path string true "Company ID"
+// @Success 200 {array} models.Item "Successfully retrieved items"
+// @Failure 400 {object} models.ErrorResponse "Invalid company ID"
+// @Failure 404 {object} models.ErrorResponse "No items found for the company"
+// @Failure 500 {object} models.ErrorResponse "Failed to retrieve items"
+// @Router /item/company/company_id [get]
+func GetItemsByCompanyID(c *gin.Context) {
+	companyIDParam := c.Param("company_id")
+	if companyIDParam == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Company ID is required"})
+		return
+	}
+
+	companyID, err := primitive.ObjectIDFromHex(companyIDParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid company ID"})
+		return
+	}
+
+	filter := bson.M{"company_id": companyID}
+	cursor, err := config.DB.Collection("items").Find(context.Background(), filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch items"})
+		return
+	}
+	defer cursor.Close(context.Background())
+
+	var items []models.Item
+	if err := cursor.All(context.Background(), &items); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode items"})
+		return
+	}
+
+	c.JSON(http.StatusOK, items)
+}
