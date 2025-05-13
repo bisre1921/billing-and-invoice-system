@@ -1168,6 +1168,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/item/company/company_id": {
+            "get": {
+                "description": "Retrieves all items belonging to a specific company.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Item"
+                ],
+                "summary": "Get all items for a specific company",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Company ID",
+                        "name": "company_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successfully retrieved items",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/models.Item"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid company ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "No items found for the company",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to retrieve items",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/item/delete/{id}": {
             "delete": {
                 "security": [
@@ -1813,6 +1866,9 @@ const docTemplate = `{
                 },
                 "description": {
                     "type": "string"
+                },
+                "discount": {
+                    "type": "number"
                 },
                 "id": {
                     "type": "string"
