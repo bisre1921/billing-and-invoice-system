@@ -27,37 +27,36 @@ import (
 // @Failure 500 {object} map[string]string "Failed to generate invoice"
 // @Router /invoice/generate [post]
 func GenerateInvoice(c *gin.Context) {
-    var invoice models.Invoice
-    if err := c.ShouldBindJSON(&invoice); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice input", "details": err.Error()})
-        return
-    }
+	var invoice models.Invoice
+	if err := c.ShouldBindJSON(&invoice); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice input", "details": err.Error()})
+		return
+	}
 
-    var total float64 = 0
-    for i, item := range invoice.Items {
-        discountAmount := item.UnitPrice * float64(item.Discount) / 100
-        subtotal := float64(item.Quantity) * (item.UnitPrice - discountAmount)
-        invoice.Items[i].Subtotal = subtotal
-        total += subtotal
-    }
+	var total float64 = 0
+	for i, item := range invoice.Items {
+		discountAmount := item.UnitPrice * float64(item.Discount) / 100
+		subtotal := float64(item.Quantity) * (item.UnitPrice - discountAmount)
+		invoice.Items[i].Subtotal = subtotal
+		total += subtotal
+	}
 
-    invoice.Amount = total
-    invoice.CreatedAt = time.Now()
-    invoice.UpdatedAt = time.Now()
+	invoice.Amount = total
+	invoice.CreatedAt = time.Now()
+	invoice.UpdatedAt = time.Now()
+	invoice.Date = time.Now()
+	invoice.DueDate = invoice.Date.Add(7 * 24 * time.Hour)
+	invoice.Status = "Unpaid"
 
-    invoice.Date = time.Now()
+	res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice"})
+		return
+	}
 
-    invoice.DueDate = invoice.Date.Add(7 * 24 * time.Hour) 
+	invoice.ID = res.InsertedID.(primitive.ObjectID)
 
-    res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice"})
-        return
-    }
-
-    invoice.ID = res.InsertedID.(primitive.ObjectID)
-
-    c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
+	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
 }
 
 // GetInvoice godoc
@@ -257,4 +256,54 @@ func DownloadInvoice(c *gin.Context) {
 
 	c.Header("Content-Disposition", "attachment; filename=invoice_"+invoice.ID.Hex()+".pdf")
 	c.Header("Content-Type", "application/pdf")
+}
+
+// MarkInvoiceAsPaid godoc
+// @Summary Mark an invoice as paid
+// @Description Update the status of a specific invoice to "Paid" and optionally set the payment date.
+// @Tags Invoices
+// @Accept json
+// @Produce json
+// @Param id path string true "Invoice ID"
+// @Param body body models.UpdatePaymentStatusRequest true "Optional payment_date"
+// @Success 200 {object} map[string]string "Invoice marked as paid successfully"
+// @Failure 400 {object} map[string]string "Invalid invoice ID or input"
+// @Failure 404 {object} map[string]string "Invoice not found"
+// @Failure 500 {object} map[string]string "Failed to update invoice status"
+// @Router /invoice/mark-as-paid/{id} [put]
+func MarkInvoiceAsPaid(c *gin.Context) {
+	invoiceID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(invoiceID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice ID"})
+		return
+	}
+
+	var updateRequest models.UpdatePaymentStatusRequest
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input", "details": err.Error()})
+		return
+	}
+
+	update := bson.M{"status": "Paid"}
+	if !updateRequest.PaymentDate.IsZero() {
+		update["payment_date"] = updateRequest.PaymentDate
+	}
+
+	result, err := config.DB.Collection("invoices").UpdateOne(
+		context.Background(),
+		bson.M{"_id": objID},
+		bson.M{"$set": update},
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update invoice status"})
+		return
+	}
+
+	if result.ModifiedCount == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Invoice marked as paid successfully"})
 }

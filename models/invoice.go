@@ -30,3 +30,7 @@ type InvoiceItem struct {
 	Discount  float64 `json:"discount" bson:"discount"`
 	Subtotal  float64 `json:"subtotal" bson:"subtotal"`
 }
+
+type UpdatePaymentStatusRequest struct {
+	PaymentDate time.Time `json:"payment_date"`
+}
