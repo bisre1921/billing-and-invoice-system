@@ -27,34 +27,37 @@ import (
 // @Failure 500 {object} map[string]string "Failed to generate invoice"
 // @Router /invoice/generate [post]
 func GenerateInvoice(c *gin.Context) {
-	var invoice models.Invoice
-	if err := c.ShouldBindJSON(&invoice); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice input", "details": err.Error()})
-		return
-	}
+    var invoice models.Invoice
+    if err := c.ShouldBindJSON(&invoice); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid invoice input", "details": err.Error()})
+        return
+    }
 
-	var total float64 = 0
-	for i, item := range invoice.Items {
-		discountAmount := item.UnitPrice * float64(item.Discount) / 100
-		subtotal := float64(item.Quantity) * (item.UnitPrice - discountAmount)
-		invoice.Items[i].Subtotal = subtotal
-		total += subtotal
-	}
+    var total float64 = 0
+    for i, item := range invoice.Items {
+        discountAmount := item.UnitPrice * float64(item.Discount) / 100
+        subtotal := float64(item.Quantity) * (item.UnitPrice - discountAmount)
+        invoice.Items[i].Subtotal = subtotal
+        total += subtotal
+    }
 
-	invoice.Amount = total
-	invoice.CreatedAt = time.Now()
-	invoice.UpdatedAt = time.Now()
+    invoice.Amount = total
+    invoice.CreatedAt = time.Now()
+    invoice.UpdatedAt = time.Now()
 
-	res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice"})
-		return
-	}
+    invoice.Date = time.Now()
 
-	invoice.ID = res.InsertedID.(primitive.ObjectID)
+    invoice.DueDate = invoice.Date.Add(7 * 24 * time.Hour) 
 
-	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
+    res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
+    if err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate invoice"})
+        return
+    }
 
+    invoice.ID = res.InsertedID.(primitive.ObjectID)
+
+    c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
 }
 
 // GetInvoice godoc

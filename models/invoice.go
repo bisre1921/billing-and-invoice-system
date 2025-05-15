@@ -11,7 +11,7 @@ type Invoice struct {
 	CustomerID      string             `json:"customer_id" bson:"customer_id" binding:"required"`
 	CompanyID       string             `json:"company_id" bson:"company_id" binding:"required"`
 	ReferenceNumber string             `json:"reference_number" bson:"reference_number" binding:"required"`
-	Date            time.Time          `json:"date" bson:"date" binding:"required"`
+	Date            time.Time          `json:"date" bson:"date"`
 	Terms           string             `json:"terms" bson:"terms"`
 	Status          string             `json:"status" bson:"status"`
 	Amount          float64            `json:"amount" bson:"amount"`
