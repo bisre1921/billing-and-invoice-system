@@ -103,7 +103,6 @@ definitions:
     required:
     - company_id
     - customer_id
-    - date
     - reference_number
     type: object
   models.InvoiceItem:
@@ -182,6 +181,11 @@ definitions:
   models.TokenResponse:
     properties:
       token:
+        type: string
+    type: object
+  models.UpdatePaymentStatusRequest:
+    properties:
+      payment_date:
         type: string
     type: object
   models.UpdateUserInput:
@@ -877,6 +881,54 @@ paths:
               type: string
             type: object
       summary: Generate a new invoice
+      tags:
+      - Invoices
+  /invoice/mark-as-paid/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update the status of a specific invoice to "Paid" and optionally
+        set the payment date.
+      parameters:
+      - description: Invoice ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Optional payment_date
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UpdatePaymentStatusRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Invoice marked as paid successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid invoice ID or input
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Invoice not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to update invoice status
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Mark an invoice as paid
       tags:
       - Invoices
   /invoice/send/{id}:

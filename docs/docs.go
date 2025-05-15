@@ -967,6 +967,77 @@ const docTemplate = `{
                 }
             }
         },
+        "/invoice/mark-as-paid/{id}": {
+            "put": {
+                "description": "Update the status of a specific invoice to \"Paid\" and optionally set the payment date.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Invoices"
+                ],
+                "summary": "Mark an invoice as paid",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Invoice ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Optional payment_date",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/models.UpdatePaymentStatusRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Invoice marked as paid successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid invoice ID or input",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Invoice not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update invoice status",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/invoice/send/{id}": {
             "post": {
                 "description": "Send a generated invoice to the customer via email",
@@ -1781,7 +1852,6 @@ const docTemplate = `{
             "required": [
                 "company_id",
                 "customer_id",
-                "date",
                 "reference_number"
             ],
             "properties": {
@@ -1944,6 +2014,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.UpdatePaymentStatusRequest": {
+            "type": "object",
+            "properties": {
+                "payment_date": {
                     "type": "string"
                 }
             }
