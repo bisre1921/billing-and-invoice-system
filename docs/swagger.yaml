@@ -812,7 +812,7 @@ paths:
       - Invoices
   /invoice/download/{id}:
     get:
-      description: Download a specific invoice by ID
+      description: Download a specific invoice or receipt by ID based on its status.
       parameters:
       - description: Invoice ID
         in: path
@@ -844,7 +844,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Download invoice as PDF
+      summary: Download invoice or receipt as PDF
       tags:
       - Invoices
   /invoice/generate:
@@ -933,7 +933,8 @@ paths:
       - Invoices
   /invoice/send/{id}:
     post:
-      description: Send a generated invoice to the customer via email
+      description: Sends either an invoice (if unpaid) or a receipt (if paid) to the
+        customer via email.
       parameters:
       - description: Invoice ID
         in: path
@@ -944,7 +945,7 @@ paths:
       - application/json
       responses:
         "200":
-          description: Invoice sent successfully
+          description: Email sent successfully
           schema:
             additionalProperties:
               type: string
@@ -967,7 +968,7 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Send an invoice via email
+      summary: Send an invoice or receipt via email
       tags:
       - Invoices
   /item/add:

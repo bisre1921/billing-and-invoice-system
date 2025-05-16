@@ -860,14 +860,14 @@ const docTemplate = `{
         },
         "/invoice/download/{id}": {
             "get": {
-                "description": "Download a specific invoice by ID",
+                "description": "Download a specific invoice or receipt by ID based on its status.",
                 "produces": [
                     "application/pdf"
                 ],
                 "tags": [
                     "Invoices"
                 ],
-                "summary": "Download invoice as PDF",
+                "summary": "Download invoice or receipt as PDF",
                 "parameters": [
                     {
                         "type": "string",
@@ -1040,14 +1040,14 @@ const docTemplate = `{
         },
         "/invoice/send/{id}": {
             "post": {
-                "description": "Send a generated invoice to the customer via email",
+                "description": "Sends either an invoice (if unpaid) or a receipt (if paid) to the customer via email.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Invoices"
                 ],
-                "summary": "Send an invoice via email",
+                "summary": "Send an invoice or receipt via email",
                 "parameters": [
                     {
                         "type": "string",
@@ -1059,7 +1059,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Invoice sent successfully",
+                        "description": "Email sent successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
