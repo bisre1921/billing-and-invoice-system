@@ -1517,7 +1517,7 @@ const docTemplate = `{
         },
         "/report/generate": {
             "post": {
-                "description": "Generate a new report",
+                "description": "Generate a new report based on the provided type, title, and description. The content is auto-generated.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1530,12 +1530,12 @@ const docTemplate = `{
                 "summary": "Generate a new report",
                 "parameters": [
                     {
-                        "description": "Report data",
+                        "description": "Report generation data",
                         "name": "report",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.Report"
+                            "$ref": "#/definitions/models.GenerateReportRequest"
                         }
                     }
                 ],
@@ -1834,6 +1834,33 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.GenerateReportRequest": {
+            "type": "object",
+            "required": [
+                "company_id",
+                "description",
+                "title",
+                "type"
+            ],
+            "properties": {
+                "company_id": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "description": "Will be populated server-side, but good to include",
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }

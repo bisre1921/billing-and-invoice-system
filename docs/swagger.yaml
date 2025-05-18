@@ -64,6 +64,25 @@ definitions:
       error:
         type: string
     type: object
+  models.GenerateReportRequest:
+    properties:
+      company_id:
+        type: string
+      created_by:
+        description: Will be populated server-side, but good to include
+        type: string
+      description:
+        type: string
+      title:
+        type: string
+      type:
+        type: string
+    required:
+    - company_id
+    - description
+    - title
+    - type
+    type: object
   models.GenericResponse:
     properties:
       id: {}
@@ -1248,14 +1267,15 @@ paths:
     post:
       consumes:
       - application/json
-      description: Generate a new report
+      description: Generate a new report based on the provided type, title, and description.
+        The content is auto-generated.
       parameters:
-      - description: Report data
+      - description: Report generation data
         in: body
         name: report
         required: true
         schema:
-          $ref: '#/definitions/models.Report'
+          $ref: '#/definitions/models.GenerateReportRequest'
       produces:
       - application/json
       responses:

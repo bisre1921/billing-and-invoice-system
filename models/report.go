@@ -18,3 +18,11 @@ type Report struct {
 	Status           string             `json:"status"`
 	Content          string             `json:"content"`
 }
+
+type GenerateReportRequest struct {
+	CompanyID   string `json:"company_id" binding:"required"`
+	Title       string `json:"title" binding:"required"`
+	Description string `json:"description" binding:"required"`
+	Type        string `json:"type" binding:"required"`
+	CreatedBy   string `json:"created_by"` 
+}
