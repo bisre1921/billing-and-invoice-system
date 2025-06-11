@@ -1417,6 +1417,61 @@ const docTemplate = `{
                 }
             }
         },
+        "/item/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a single item by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Item"
+                ],
+                "summary": "Get an item by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item found",
+                        "schema": {
+                            "$ref": "#/definitions/models.Item"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid item ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Item not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch item",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/report/companies/{company_id}": {
             "get": {
                 "description": "Get all reports for a specific company",
@@ -1963,9 +2018,6 @@ const docTemplate = `{
         "models.Item": {
             "type": "object",
             "properties": {
-                "buying_price": {
-                    "type": "number"
-                },
                 "category": {
                     "type": "string"
                 },
@@ -1981,17 +2033,11 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "discount": {
-                    "type": "number"
-                },
                 "id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
-                },
-                "quantity": {
-                    "type": "integer"
                 },
                 "selling_price": {
                     "type": "number"

@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // AddItem godoc
@@ -243,4 +244,39 @@ func GetItemsByCompanyID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, items)
+}
+
+// GetItem godoc
+// @Summary Get an item by ID
+// @Description Retrieves a single item by its ID
+// @Tags Item
+// @Accept json
+// @Produce json
+// @Param id path string true "Item ID"
+// @Success 200 {object} models.Item "Item found"
+// @Failure 400 {object} models.ErrorResponse "Invalid item ID"
+// @Failure 404 {object} models.ErrorResponse "Item not found"
+// @Failure 500 {object} models.ErrorResponse "Failed to fetch item"
+// @Router /item/{id} [get]
+// @Security BearerAuth
+func GetItem(c *gin.Context) {
+	id := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid item ID"})
+		return
+	}
+
+	var item models.Item
+	err = config.DB.Collection("items").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&item)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Item not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch item"})
+		return
+	}
+
+	c.JSON(http.StatusOK, item)
 }

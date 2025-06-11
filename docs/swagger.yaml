@@ -144,8 +144,6 @@ definitions:
     type: object
   models.Item:
     properties:
-      buying_price:
-        type: number
       category:
         type: string
       code:
@@ -156,14 +154,10 @@ definitions:
         type: string
       description:
         type: string
-      discount:
-        type: number
       id:
         type: string
       name:
         type: string
-      quantity:
-        type: integer
       selling_price:
         type: number
       unit:
@@ -1001,6 +995,41 @@ paths:
       summary: Send an invoice or receipt via email
       tags:
       - Invoices
+  /item/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single item by its ID
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item found
+          schema:
+            $ref: '#/definitions/models.Item'
+        "400":
+          description: Invalid item ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Item not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to fetch item
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an item by ID
+      tags:
+      - Item
   /item/add:
     post:
       consumes:
