@@ -2,7 +2,11 @@ package controllers
 
 import (
 	"context"
+	"encoding/csv"
+	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/bisre1921/billing-and-invoice-system/config"
@@ -279,4 +283,156 @@ func GetItem(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, item)
+}
+
+// ImportItems godoc
+// @Summary Import items from CSV file
+// @Description Import multiple items from a CSV file
+// @Tags Item
+// @Accept multipart/form-data
+// @Produce json
+// @Param file formData file true "CSV file containing item data"
+// @Param company_id formData string true "Company ID"
+// @Success 201 {object} models.GenericResponse "Items imported successfully"
+// @Failure 400 {object} models.ErrorResponse "Invalid file format or data"
+// @Failure 500 {object} models.ErrorResponse "Failed to import items"
+// @Router /item/import [post]
+// @Security BearerAuth
+func ImportItems(c *gin.Context) {
+	// Get company ID from form data
+	companyID := c.PostForm("company_id")
+	if companyID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Company ID is required"})
+		return
+	}
+
+	objCompanyID, err := primitive.ObjectIDFromHex(companyID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid company ID"})
+		return
+	}
+
+	// Get the file from the request
+	file, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "File is required"})
+		return
+	}
+
+	// Check file extension
+	if file.Filename[len(file.Filename)-4:] != ".csv" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Only CSV files are allowed"})
+		return
+	}
+
+	// Open the file
+	src, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
+		return
+	}
+	defer src.Close()
+
+	// Create CSV reader
+	reader := csv.NewReader(src)
+
+	// Read header
+	header, err := reader.Read()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read CSV header"})
+		return
+	}
+
+	// Validate header
+	expectedHeaders := []string{"code", "name", "description", "category", "selling_price", "unit"}
+	if len(header) < len(expectedHeaders) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid CSV format. Required columns: code, name, description, category, selling_price, unit"})
+		return
+	}
+
+	var items []interface{}
+	var duplicateCodes []string
+	lineNumber := 2 // Start from 2 because line 1 is header
+
+	// Read and process each row
+	for {
+		row, err := reader.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Error reading line %d: %v", lineNumber, err)})
+			return
+		}
+
+		// Check if item code already exists
+		var existingItem models.Item
+		err = config.DB.Collection("items").FindOne(context.Background(),
+			bson.M{
+				"code":       row[0],
+				"company_id": objCompanyID,
+			}).Decode(&existingItem)
+
+		if err == nil {
+			// Item code already exists
+			duplicateCodes = append(duplicateCodes, row[0])
+			lineNumber++
+			continue
+		}
+
+		// Parse selling price
+		sellingPrice, err := strconv.ParseFloat(row[4], 64)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Invalid selling price at line %d: %s", lineNumber, row[4]),
+			})
+			return
+		}
+
+		// Create new item
+		item := models.Item{
+			ID:           primitive.NewObjectID(),
+			Code:         row[0],
+			Name:         row[1],
+			Description:  row[2],
+			Category:     row[3],
+			SellingPrice: sellingPrice,
+			Unit:         row[5],
+			CompanyID:    objCompanyID,
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
+		}
+
+		items = append(items, item)
+		lineNumber++
+	}
+
+	if len(items) == 0 {
+		if len(duplicateCodes) > 0 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("All items have duplicate codes: %v", duplicateCodes),
+			})
+			return
+		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No valid items found in CSV"})
+		return
+	}
+
+	// Insert all valid items
+	_, err = config.DB.Collection("items").InsertMany(context.Background(), items)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to import items"})
+		return
+	}
+
+	response := gin.H{
+		"message": fmt.Sprintf("Successfully imported %d items", len(items)),
+	}
+	if len(duplicateCodes) > 0 {
+		response["skipped_codes"] = duplicateCodes
+		response["message"] = fmt.Sprintf("Imported %d items. Skipped %d items with duplicate codes",
+			len(items), len(duplicateCodes))
+	}
+
+	c.JSON(http.StatusCreated, response)
 }

@@ -75,6 +75,7 @@ func _SetupItemRoutes(router *gin.RouterGroup) {
 		item.GET("/all", controllers.ListItems)
 		item.GET("/company/:company_id", controllers.GetItemsByCompanyID)
 		item.GET("/:id", controllers.GetItem)
+		item.POST("/import", controllers.ImportItems)
 	}
 }
 

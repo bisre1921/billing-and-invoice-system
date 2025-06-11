@@ -1159,6 +1159,42 @@ paths:
       summary: Delete an existing item
       tags:
       - Item
+  /item/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Import multiple items from a CSV file
+      parameters:
+      - description: CSV file containing item data
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Company ID
+        in: formData
+        name: company_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Items imported successfully
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Invalid file format or data
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to import items
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Import items from CSV file
+      tags:
+      - Item
   /item/update/{id}:
     put:
       consumes:
