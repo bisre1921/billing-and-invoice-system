@@ -104,6 +104,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "User with this email already exists",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -1787,10 +1793,16 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "max_credit_amount": {
+                    "type": "number"
+                },
                 "name": {
                     "type": "string"
                 },
                 "phone": {
+                    "type": "string"
+                },
+                "tin": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -1851,7 +1863,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_by": {
-                    "description": "Will be populated server-side, but good to include",
                     "type": "string"
                 },
                 "description": {

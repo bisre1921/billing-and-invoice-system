@@ -31,9 +31,13 @@ definitions:
         type: string
       id:
         type: string
+      max_credit_amount:
+        type: number
       name:
         type: string
       phone:
+        type: string
+      tin:
         type: string
       updated_at:
         type: string
@@ -69,7 +73,6 @@ definitions:
       company_id:
         type: string
       created_by:
-        description: Will be populated server-side, but good to include
         type: string
       description:
         type: string
@@ -310,6 +313,10 @@ paths:
             $ref: '#/definitions/models.GenericResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: User with this email already exists
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "500":

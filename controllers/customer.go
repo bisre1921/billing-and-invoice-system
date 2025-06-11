@@ -31,10 +31,21 @@ func RegisterCustomer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	// Validate Company ID
 	if customer.CompanyID.IsZero() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "CompanyID is required"})
+		return
+	}
+
+	// Validate TIN (assuming TIN is required)
+	if customer.TIN == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "TIN is required"})
+		return
+	}
+
+	// Validate MaxCreditAmount (should be non-negative)
+	if customer.MaxCreditAmount < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "MaxCreditAmount cannot be negative"})
 		return
 	}
 
@@ -79,15 +90,16 @@ func UpdateCustomer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	update := bson.M{
 		"$set": bson.M{
-			"name":       updatedCustomer.Name,
-			"email":      updatedCustomer.Email,
-			"phone":      updatedCustomer.Phone,
-			"address":    updatedCustomer.Address,
-			"company_id": updatedCustomer.CompanyID,
-			"updated_at": time.Now(),
+			"name":              updatedCustomer.Name,
+			"email":             updatedCustomer.Email,
+			"phone":             updatedCustomer.Phone,
+			"address":           updatedCustomer.Address,
+			"tin":               updatedCustomer.TIN,
+			"max_credit_amount": updatedCustomer.MaxCreditAmount,
+			"company_id":        updatedCustomer.CompanyID,
+			"updated_at":        time.Now(),
 		},
 	}
 
