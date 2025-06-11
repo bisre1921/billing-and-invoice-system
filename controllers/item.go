@@ -31,9 +31,33 @@ func AddItem(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	if item.CompanyID.IsZero() {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "CompanyID is required"})
+		return
+	}
+
+	// Validate item code
+	if item.Code == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Item code is required"})
+		return
+	}
+
+	// Validate item category
+	if item.Category == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Item category is required"})
+		return
+	}
+
+	// Check if item code already exists for this company
+	var existingItem models.Item
+	err := config.DB.Collection("items").FindOne(context.Background(),
+		bson.M{
+			"code":       item.Code,
+			"company_id": item.CompanyID,
+		}).Decode(&existingItem)
+
+	if err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "Item with this code already exists"})
 		return
 	}
 
@@ -80,15 +104,29 @@ func UpdateItem(c *gin.Context) {
 		return
 	}
 
-	item.UpdatedAt = time.Now()
+	item.UpdatedAt = time.Now() // If code is being updated, check if new code already exists for this company
+	if item.Code != "" {
+		var existingItem models.Item
+		err := config.DB.Collection("items").FindOne(context.Background(),
+			bson.M{
+				"code":       item.Code,
+				"company_id": item.CompanyID,
+				"_id":        bson.M{"$ne": itemID}, // exclude current item
+			}).Decode(&existingItem)
+
+		if err == nil {
+			c.JSON(http.StatusConflict, gin.H{"error": "Item with this code already exists"})
+			return
+		}
+	}
 	update := bson.M{
 		"$set": bson.M{
+			"code":          item.Code,
 			"name":          item.Name,
 			"description":   item.Description,
+			"category":      item.Category,
 			"selling_price": item.SellingPrice,
-			"buying_price":  item.BuyingPrice,
 			"unit":          item.Unit,
-			"quantity":      item.Quantity,
 			"updated_at":    item.UpdatedAt,
 		},
 	}

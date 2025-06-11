@@ -1966,6 +1966,12 @@ const docTemplate = `{
                 "buying_price": {
                     "type": "number"
                 },
+                "category": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
                 "company_id": {
                     "type": "string"
                 },
