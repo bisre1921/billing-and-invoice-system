@@ -26,12 +26,13 @@ func TestAddItem(t *testing.T) {
 		requestBody    map[string]interface{}
 		expectedStatus int
 		setupMock      func(mt *mtest.T)
-	}{
-		{
+	}{		{
 			name: "Valid Item Creation",
 			requestBody: map[string]interface{}{
 				"name":          "Test Item",
 				"description":   "A test item for unit testing",
+				"code":          "TEST001",
+				"category":      "Electronics",
 				"selling_price": 29.99,
 				"buying_price":  19.99,
 				"quantity":      100,
@@ -41,7 +42,15 @@ func TestAddItem(t *testing.T) {
 			},
 			expectedStatus: http.StatusCreated,
 			setupMock: func(mt *mtest.T) {
-				mt.AddMockResponses(mtest.CreateSuccessResponse())
+				// Mock the FindOne call for existing item check (should return no document found)
+				mt.AddMockResponses(
+					mtest.CreateCommandErrorResponse(mtest.CommandError{
+						Code:    4,
+						Message: "not found",
+						Name:    "CommandNotFound",
+					}),
+					mtest.CreateSuccessResponse(),
+				)
 			},
 		},
 	}

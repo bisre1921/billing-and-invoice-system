@@ -28,13 +28,13 @@ func TestGenerateInvoice(t *testing.T) {
 		requestBody    models.Invoice
 		expectedStatus int
 		setupMock      func(mt *mtest.T)
-	}{
-		{
+	}{		{
 			name: "Valid Invoice Generation",
 			requestBody: models.Invoice{
 				CustomerID:      primitive.NewObjectID().Hex(),
 				CompanyID:       primitive.NewObjectID().Hex(),
 				ReferenceNumber: "INV-2025-001",
+				PaymentType:     "cash",
 				Terms:           "Net 30",
 				Items: []models.InvoiceItem{
 					{
@@ -95,7 +95,7 @@ func TestGenerateInvoice(t *testing.T) {
 					// Validate invoice data
 					invoice := response["invoice"].(map[string]interface{})
 					assert.NotNil(t, invoice["id"])
-					assert.Equal(t, "Unpaid", invoice["status"])
+					assert.Equal(t, "Paid", invoice["status"])
 
 					// Verify calculated amount
 					var expectedTotal float64 = 0

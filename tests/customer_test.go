@@ -11,15 +11,18 @@ import (
 	"github.com/bisre1921/billing-and-invoice-system/controllers"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/integration/mtest"
 )
 
-func TestRegisterUser(t *testing.T) {
+func TestRegisterCustomer(t *testing.T) {
 	// Setup
 	gin.SetMode(gin.TestMode)
 	router := gin.Default()
-	router.POST("/auth/register/user", controllers.RegisterUser)
+	router.POST("/customer/register", controllers.RegisterCustomer)
 
+	// Create a test company ID
+	companyID := primitive.NewObjectID()
 	// Test cases
 	testCases := []struct {
 		name           string
@@ -27,21 +30,20 @@ func TestRegisterUser(t *testing.T) {
 		expectedStatus int
 		setupMock      func(mt *mtest.T)
 	}{		{
-			name: "Valid User Registration",
+			name: "Valid Customer Registration",
 			requestBody: map[string]interface{}{
-				"name":     "Test User",
-				"email":    "testuser@example.com",
-				"password": "securepassword123",
-				"role":     "owner",			},
+				"name":                     "Test Customer",
+				"email":                    "customer@example.com",
+				"phone":                    "1234567890",
+				"address":                  "123 Test Street, Test City",
+				"tin":                      "123456789",
+				"max_credit_amount":        1000.0,
+				"current_credit_available": 1000.0,
+				"company_id":               companyID.Hex(),
+			},
 			expectedStatus: http.StatusCreated,
 			setupMock: func(mt *mtest.T) {
-				// Mock the FindOne call for existing user check - simulate no document found
-				// First response: no document found (allows registration to proceed)
-				// Second response: successful insert
-				mt.AddMockResponses(
-					mtest.CreateCursorResponse(0, "billing_invoice.users", mtest.FirstBatch),
-					mtest.CreateSuccessResponse(),
-				)
+				mt.AddMockResponses(mtest.CreateSuccessResponse())
 			},
 		},
 	}
@@ -49,7 +51,7 @@ func TestRegisterUser(t *testing.T) {
 	// Run tests using MongoDB mock
 	mt := mtest.New(t, mtest.NewOptions().ClientType(mtest.Mock))
 
-	mt.Run("RegisterUserTests", func(mt *mtest.T) {
+	mt.Run("RegisterCustomerTests", func(mt *mtest.T) {
 		config.DB = mt.DB
 
 		for _, tc := range testCases {
@@ -59,14 +61,12 @@ func TestRegisterUser(t *testing.T) {
 
 				// Create request
 				jsonData, _ := json.Marshal(tc.requestBody)
-				req, _ := http.NewRequest("POST", "/auth/register/user", bytes.NewBuffer(jsonData))
+				req, _ := http.NewRequest("POST", "/customer/register", bytes.NewBuffer(jsonData))
 				req.Header.Set("Content-Type", "application/json")
 				w := httptest.NewRecorder()
 
 				// Perform request
-				router.ServeHTTP(w, req)
-
-				// Check response
+				router.ServeHTTP(w, req)				// Check response
 				assert.Equal(t, tc.expectedStatus, w.Code)
 
 				if tc.expectedStatus == http.StatusCreated {
@@ -74,7 +74,7 @@ func TestRegisterUser(t *testing.T) {
 					err := json.Unmarshal(w.Body.Bytes(), &response)
 					assert.NoError(t, err)
 					assert.Contains(t, response, "message")
-					assert.Equal(t, "User created successfully", response["message"])
+					assert.Equal(t, "Customer registered successfully", response["message"])
 					assert.Contains(t, response, "id")
 				}
 			})
