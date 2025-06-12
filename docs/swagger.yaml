@@ -1,5 +1,59 @@
 basePath: /api
 definitions:
+  controllers.SalesReportItem:
+    properties:
+      customer_name:
+        type: string
+      date:
+        type: string
+      invoice_id:
+        type: string
+      items:
+        items:
+          properties:
+            category:
+              type: string
+            name:
+              type: string
+            quantity:
+              type: integer
+            subtotal:
+              type: number
+            unit_price:
+              type: number
+          type: object
+        type: array
+      status:
+        type: string
+      total_amount:
+        type: number
+    type: object
+  controllers.SalesReportRequest:
+    properties:
+      categories:
+        description: e.g. ["Electronics", ...]
+        items:
+          type: string
+        type: array
+      company_id:
+        type: string
+      custom_end:
+        type: string
+      custom_start:
+        description: for custom range
+        type: string
+      date_range:
+        description: e.g. today, last_7_days, last_month, last_3_months, custom
+        type: string
+      statuses:
+        description: '["Paid", "Unpaid"]'
+        items:
+          type: string
+        type: array
+    required:
+    - company_id
+    - date_range
+    type: object
   models.Company:
     properties:
       address:
@@ -69,24 +123,6 @@ definitions:
     properties:
       error:
         type: string
-    type: object
-  models.GenerateReportRequest:
-    properties:
-      company_id:
-        type: string
-      created_by:
-        type: string
-      description:
-        type: string
-      title:
-        type: string
-      type:
-        type: string
-    required:
-    - company_id
-    - description
-    - title
-    - type
     type: object
   models.GenericResponse:
     properties:
@@ -179,29 +215,6 @@ definitions:
     required:
     - email
     - password
-    type: object
-  models.Report:
-    properties:
-      company_id:
-        type: string
-      content:
-        type: string
-      created_by:
-        type: string
-      created_date:
-        type: string
-      description:
-        type: string
-      id:
-        type: string
-      last_modified_date:
-        type: string
-      status:
-        type: string
-      title:
-        type: string
-      type:
-        type: string
     type: object
   models.TokenResponse:
     properties:
@@ -887,8 +900,7 @@ paths:
       consumes:
       - application/json
       description: Generate a new invoice for a customer with item list and auto-calculated
-        total. Payment type can be 'cash' or 'credit'. Due date is only required for
-        credit payments.
+        total.
       parameters:
       - description: Invoice data
         in: body
@@ -905,13 +917,7 @@ paths:
             additionalProperties: true
             type: object
         "400":
-          description: Invalid invoice input or insufficient customer credit
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "404":
-          description: Customer not found
+          description: Invalid invoice input
           schema:
             additionalProperties:
               type: string
@@ -1254,143 +1260,35 @@ paths:
       summary: Update an existing item
       tags:
       - Item
-  /report/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Get a report by ID
-      parameters:
-      - description: Report ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Report retrieved successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid report ID
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to get report
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get a report by ID
-      tags:
-      - Reports
-  /report/companies/{company_id}:
-    get:
-      consumes:
-      - application/json
-      description: Get all reports for a specific company
-      parameters:
-      - description: Company ID
-        in: path
-        name: company_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Reports retrieved successfully
-          schema:
-            items:
-              $ref: '#/definitions/models.Report'
-            type: array
-        "400":
-          description: Invalid company ID
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to get reports
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get all reports for a specific company
-      tags:
-      - Reports
-  /report/download/{id}:
-    get:
-      consumes:
-      - application/json
-      description: Download a report by ID
-      parameters:
-      - description: Report ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Report downloaded successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "400":
-          description: Invalid report ID
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to download report
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Download a report by ID
-      tags:
-      - Reports
-  /report/generate:
+  /report/sales:
     post:
       consumes:
       - application/json
-      description: Generate a new report based on the provided type, title, and description.
-        The content is auto-generated.
+      description: Returns sales data for a company over a given period, with filters
+        for status and item category.
       parameters:
-      - description: Report generation data
+      - description: Report filters
         in: body
-        name: report
+        name: filters
         required: true
         schema:
-          $ref: '#/definitions/models.GenerateReportRequest'
+          $ref: '#/definitions/controllers.SalesReportRequest'
       produces:
       - application/json
       responses:
         "200":
-          description: Report generated successfully
+          description: OK
           schema:
-            additionalProperties: true
-            type: object
+            items:
+              $ref: '#/definitions/controllers.SalesReportItem'
+            type: array
         "400":
-          description: Invalid report input
+          description: Bad Request
           schema:
             additionalProperties:
               type: string
             type: object
-        "500":
-          description: Failed to generate report
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Generate a new report
+      summary: Get sales report
       tags:
       - Reports
   /user/{id}:

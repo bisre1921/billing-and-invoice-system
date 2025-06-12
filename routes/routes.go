@@ -94,9 +94,6 @@ func _SetupInvoiceRoutes(router *gin.RouterGroup) {
 func _SetupReportRoutes(router *gin.RouterGroup) {
 	report := router.Group("/report")
 	{
-		report.POST("/generate", controllers.GenerateReport)
-		report.GET("/:id", controllers.GetReport)
-		report.GET("/companies/:company_id", controllers.GetReportsByCompanyID)
-		report.GET("/download/:id", controllers.DownloadReport)
+		report.POST("/sales", controllers.GetSalesReport)
 	}
 }
