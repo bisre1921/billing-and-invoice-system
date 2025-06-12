@@ -27,13 +27,19 @@ definitions:
         type: string
       created_at:
         type: string
+      current_credit_available:
+        type: number
       email:
         type: string
       id:
         type: string
+      max_credit_amount:
+        type: number
       name:
         type: string
       phone:
+        type: string
+      tin:
         type: string
       updated_at:
         type: string
@@ -69,7 +75,6 @@ definitions:
       company_id:
         type: string
       created_by:
-        description: Will be populated server-side, but good to include
         type: string
       description:
         type: string
@@ -111,6 +116,8 @@ definitions:
         type: array
       payment_date:
         type: string
+      payment_type:
+        type: string
       reference_number:
         type: string
       status:
@@ -122,6 +129,7 @@ definitions:
     required:
     - company_id
     - customer_id
+    - payment_type
     - reference_number
     type: object
   models.InvoiceItem:
@@ -141,22 +149,20 @@ definitions:
     type: object
   models.Item:
     properties:
-      buying_price:
-        type: number
+      category:
+        type: string
+      code:
+        type: string
       company_id:
         type: string
       created_at:
         type: string
       description:
         type: string
-      discount:
-        type: number
       id:
         type: string
       name:
         type: string
-      quantity:
-        type: integer
       selling_price:
         type: number
       unit:
@@ -310,6 +316,10 @@ paths:
             $ref: '#/definitions/models.GenericResponse'
         "400":
           description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "409":
+          description: User with this email already exists
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
@@ -527,7 +537,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Business Owner or Employee adds a new customer
+      description: Business Owner or Employee adds a new customer. CurrentCreditAvailable
+        is initialized to MaxCreditAmount.
       parameters:
       - description: Customer Data
         in: body
@@ -559,7 +570,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Business Owner or Employee updates customer details
+      description: Business Owner or Employee updates customer details. MaxCreditAmount
+        cannot be reduced below the amount already used.
       parameters:
       - description: Customer ID
         in: path
@@ -580,7 +592,11 @@ paths:
           schema:
             $ref: '#/definitions/models.GenericResponse'
         "400":
-          description: Bad Request
+          description: Invalid ID or credit amount less than used credit
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Customer not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
@@ -871,7 +887,8 @@ paths:
       consumes:
       - application/json
       description: Generate a new invoice for a customer with item list and auto-calculated
-        total.
+        total. Payment type can be 'cash' or 'credit'. Due date is only required for
+        credit payments.
       parameters:
       - description: Invoice data
         in: body
@@ -888,7 +905,13 @@ paths:
             additionalProperties: true
             type: object
         "400":
-          description: Invalid invoice input
+          description: Invalid invoice input or insufficient customer credit
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Customer not found
           schema:
             additionalProperties:
               type: string
@@ -990,6 +1013,41 @@ paths:
       summary: Send an invoice or receipt via email
       tags:
       - Invoices
+  /item/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a single item by its ID
+      parameters:
+      - description: Item ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item found
+          schema:
+            $ref: '#/definitions/models.Item'
+        "400":
+          description: Invalid item ID
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Item not found
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to fetch item
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get an item by ID
+      tags:
+      - Item
   /item/add:
     post:
       consumes:
@@ -1117,6 +1175,42 @@ paths:
       security:
       - BearerAuth: []
       summary: Delete an existing item
+      tags:
+      - Item
+  /item/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Import multiple items from a CSV file
+      parameters:
+      - description: CSV file containing item data
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Company ID
+        in: formData
+        name: company_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Items imported successfully
+          schema:
+            $ref: '#/definitions/models.GenericResponse'
+        "400":
+          description: Invalid file format or data
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Failed to import items
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Import items from CSV file
       tags:
       - Item
   /item/update/{id}:

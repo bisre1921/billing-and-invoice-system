@@ -74,6 +74,8 @@ func _SetupItemRoutes(router *gin.RouterGroup) {
 		item.DELETE("/delete/:id", controllers.DeleteItem)
 		item.GET("/all", controllers.ListItems)
 		item.GET("/company/:company_id", controllers.GetItemsByCompanyID)
+		item.GET("/:id", controllers.GetItem)
+		item.POST("/import", controllers.ImportItems)
 	}
 }
 
@@ -85,7 +87,7 @@ func _SetupInvoiceRoutes(router *gin.RouterGroup) {
 		invoice.GET("/companies/:company_id", controllers.GetInvoicesByCompanyID)
 		invoice.POST("/send/:id", controllers.SendInvoice)
 		invoice.GET("/download/:id", controllers.DownloadInvoice)
-		invoice.PUT("/mark-as-paid/:id", controllers.MarkInvoiceAsPaid) 
+		invoice.PUT("/mark-as-paid/:id", controllers.MarkInvoiceAsPaid)
 	}
 }
 

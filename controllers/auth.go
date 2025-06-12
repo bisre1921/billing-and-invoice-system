@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -23,6 +24,7 @@ import (
 // @Param user body models.User true "User Data"
 // @Success 201 {object} models.GenericResponse
 // @Failure 400 {object} models.ErrorResponse
+// @Failure 409 {object} models.ErrorResponse "User with this email already exists"
 // @Failure 500 {object} models.ErrorResponse
 // @Router /auth/register/user [post]
 func RegisterUser(c *gin.Context) {
@@ -34,6 +36,19 @@ func RegisterUser(c *gin.Context) {
 
 	if user.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is required"})
+		return
+	}
+	// Check if user with this email already exists
+	var existingUser models.User
+	err := config.DB.Collection("users").FindOne(context.Background(), bson.M{"email": user.Email}).Decode(&existingUser)
+	if err == nil {
+		// User found, email already exists
+		c.JSON(http.StatusConflict, gin.H{"error": "User with this email already exists"})
+		return
+	}
+	// If error is not "no documents found", it's a database error
+	if err != mongo.ErrNoDocuments {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error checking existing user"})
 		return
 	}
 

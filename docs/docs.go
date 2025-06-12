@@ -104,6 +104,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
                     },
+                    "409": {
+                        "description": "User with this email already exists",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -386,7 +392,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Business Owner or Employee adds a new customer",
+                "description": "Business Owner or Employee adds a new customer. CurrentCreditAvailable is initialized to MaxCreditAmount.",
                 "consumes": [
                     "application/json"
                 ],
@@ -437,7 +443,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Business Owner or Employee updates customer details",
+                "description": "Business Owner or Employee updates customer details. MaxCreditAmount cannot be reduced below the amount already used.",
                 "consumes": [
                     "application/json"
                 ],
@@ -474,7 +480,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid ID or credit amount less than used credit",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -916,7 +928,7 @@ const docTemplate = `{
         },
         "/invoice/generate": {
             "post": {
-                "description": "Generate a new invoice for a customer with item list and auto-calculated total.",
+                "description": "Generate a new invoice for a customer with item list and auto-calculated total. Payment type can be 'cash' or 'credit'. Due date is only required for credit payments.",
                 "consumes": [
                     "application/json"
                 ],
@@ -947,7 +959,16 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid invoice input",
+                        "description": "Invalid invoice input or insufficient customer credit",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1347,6 +1368,62 @@ const docTemplate = `{
                 }
             }
         },
+        "/item/import": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Import multiple items from a CSV file",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Item"
+                ],
+                "summary": "Import items from CSV file",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "CSV file containing item data",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Company ID",
+                        "name": "company_id",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Items imported successfully",
+                        "schema": {
+                            "$ref": "#/definitions/models.GenericResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid file format or data",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to import items",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/item/update/{id}": {
             "put": {
                 "security": [
@@ -1404,6 +1481,61 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/item/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves a single item by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Item"
+                ],
+                "summary": "Get an item by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Item ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Item found",
+                        "schema": {
+                            "$ref": "#/definitions/models.Item"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid item ID",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Item not found",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to fetch item",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -1781,16 +1913,25 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "current_credit_available": {
+                    "type": "number"
+                },
                 "email": {
                     "type": "string"
                 },
                 "id": {
                     "type": "string"
                 },
+                "max_credit_amount": {
+                    "type": "number"
+                },
                 "name": {
                     "type": "string"
                 },
                 "phone": {
+                    "type": "string"
+                },
+                "tin": {
                     "type": "string"
                 },
                 "updated_at": {
@@ -1851,7 +1992,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_by": {
-                    "description": "Will be populated server-side, but good to include",
                     "type": "string"
                 },
                 "description": {
@@ -1879,6 +2019,7 @@ const docTemplate = `{
             "required": [
                 "company_id",
                 "customer_id",
+                "payment_type",
                 "reference_number"
             ],
             "properties": {
@@ -1910,6 +2051,9 @@ const docTemplate = `{
                     }
                 },
                 "payment_date": {
+                    "type": "string"
+                },
+                "payment_type": {
                     "type": "string"
                 },
                 "reference_number": {
@@ -1952,8 +2096,11 @@ const docTemplate = `{
         "models.Item": {
             "type": "object",
             "properties": {
-                "buying_price": {
-                    "type": "number"
+                "category": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
                 },
                 "company_id": {
                     "type": "string"
@@ -1964,17 +2111,11 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "discount": {
-                    "type": "number"
-                },
                 "id": {
                     "type": "string"
                 },
                 "name": {
                     "type": "string"
-                },
-                "quantity": {
-                    "type": "integer"
                 },
                 "selling_price": {
                     "type": "number"

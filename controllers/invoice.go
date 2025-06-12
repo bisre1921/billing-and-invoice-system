@@ -35,6 +35,11 @@ func GenerateInvoice(c *gin.Context) {
 
 	var total float64 = 0
 	for i, item := range invoice.Items {
+		// Validate discount is a float and between 0-100
+		if item.Discount < 0 || item.Discount > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Discount for item %s must be a float between 0 and 100", item.ItemName)})
+			return
+		}
 		discountAmount := item.UnitPrice * float64(item.Discount) / 100
 		subtotal := float64(item.Quantity) * (item.UnitPrice - discountAmount)
 		invoice.Items[i].Subtotal = subtotal
@@ -45,8 +50,45 @@ func GenerateInvoice(c *gin.Context) {
 	invoice.CreatedAt = time.Now()
 	invoice.UpdatedAt = time.Now()
 	invoice.Date = time.Now()
-	invoice.DueDate = invoice.Date.Add(7 * 24 * time.Hour)
 	invoice.Status = "Unpaid"
+
+	if invoice.PaymentType == "credit" {
+		// Check if customer has enough credit
+		customerID, err := primitive.ObjectIDFromHex(invoice.CustomerID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
+			return
+		}
+		var customer models.Customer
+		err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": customerID}).Decode(&customer)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
+			return
+		}
+		if customer.CurrentCreditAvailable < total {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice amount exceeds customer's available credit"})
+			return
+		}
+		// Deduct the invoice amount from the customer's available credit
+		_, err = config.DB.Collection("customers").UpdateOne(
+			context.Background(),
+			bson.M{"_id": customerID},
+			bson.M{"$set": bson.M{"current_credit_available": customer.CurrentCreditAvailable - total}},
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update customer credit"})
+			return
+		}
+		// Set due date if not provided
+		if invoice.DueDate == nil || invoice.DueDate.IsZero() {
+			d := invoice.Date.Add(7 * 24 * time.Hour)
+			invoice.DueDate = &d
+		}
+	} else if invoice.PaymentType == "cash" {
+		invoice.Status = "Paid"
+		invoice.PaymentDate = time.Now()
+		invoice.DueDate = nil
+	}
 
 	res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
 	if err != nil {
@@ -55,7 +97,6 @@ func GenerateInvoice(c *gin.Context) {
 	}
 
 	invoice.ID = res.InsertedID.(primitive.ObjectID)
-
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
 }
 
@@ -194,12 +235,12 @@ func SendInvoice(c *gin.Context) {
 	}
 
 	m := gomail.NewMessage()
-	m.SetHeader("From", "bisrattewodros3@gmail.com") 
+	m.SetHeader("From", "bisrattewodros3@gmail.com")
 	m.SetHeader("To", customer.Email)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", emailBody)
 
-	d := gomail.NewDialer("smtp.gmail.com", 587, "bisrattewodros3@@gmail.com", "xtkd pntw wrfq rdak") 
+	d := gomail.NewDialer("smtp.gmail.com", 587, "bisrattewodros3@@gmail.com", "xtkd pntw wrfq rdak")
 
 	if err := d.DialAndSend(m); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email", "details": err.Error()})
@@ -240,15 +281,15 @@ func DownloadInvoice(c *gin.Context) {
 	pdf.AddPage()
 
 	pdf.SetFont("Arial", "B", 20)
-	companyName := "Your Company Name" 
+	companyName := "Your Company Name"
 	pdf.Cell(0, 15, companyName)
 	pdf.Ln(10)
 
 	pdf.SetFont("Arial", "", 10)
-	companyAddress := "Your Company Address" 
+	companyAddress := "Your Company Address"
 	pdf.Cell(0, 5, companyAddress)
 	pdf.Ln(5)
-	pdf.Cell(0, 5, "Email: your_company_email@example.com") 
+	pdf.Cell(0, 5, "Email: your_company_email@example.com")
 	pdf.Ln(8)
 
 	if invoice.Status == "Paid" {
@@ -315,7 +356,6 @@ func generateInvoicePDFContent(pdf *gofpdf.Fpdf, invoice *models.Invoice) {
 	pdf.Cell(0, 5, "Thank you for your business!")
 }
 
-
 func generateReceiptPDFContent(pdf *gofpdf.Fpdf, invoice *models.Invoice) {
 	pdf.SetFont("Arial", "B", 16)
 	pdf.Cell(40, 10, "PAYMENT RECEIPT")
@@ -361,7 +401,6 @@ func generateReceiptPDFContent(pdf *gofpdf.Fpdf, invoice *models.Invoice) {
 	pdf.Cell(0, 5, "Payment Received. Thank you!")
 }
 
-
 // MarkInvoiceAsPaid godoc
 // @Summary Mark an invoice as paid
 // @Description Update the status of a specific invoice to "Paid" and optionally set the payment date.
@@ -389,9 +428,19 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 		return
 	}
 
+	// Fetch the invoice to check payment type and status
+	var invoice models.Invoice
+	err = config.DB.Collection("invoices").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&invoice)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		return
+	}
+
 	update := bson.M{"status": "Paid"}
 	if !updateRequest.PaymentDate.IsZero() {
 		update["payment_date"] = updateRequest.PaymentDate
+	} else {
+		update["payment_date"] = time.Now()
 	}
 
 	result, err := config.DB.Collection("invoices").UpdateOne(
@@ -407,6 +456,26 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 	if result.ModifiedCount == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
 		return
+	}
+
+	// If it was a credit payment and not already paid, restore the customer's available credit
+	if invoice.PaymentType == "credit" && invoice.Status != "Paid" {
+		customerID, err := primitive.ObjectIDFromHex(invoice.CustomerID)
+		if err == nil {
+			var customer models.Customer
+			err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": customerID}).Decode(&customer)
+			if err == nil {
+				_, err = config.DB.Collection("customers").UpdateOne(
+					context.Background(),
+					bson.M{"_id": customerID},
+					bson.M{"$set": bson.M{"current_credit_available": customer.CurrentCreditAvailable + invoice.Amount}},
+				)
+				// If error, just log, don't fail the operation
+				if err != nil {
+					fmt.Printf("Error restoring customer credit: %v\n", err)
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice marked as paid successfully"})

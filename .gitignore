@@ -33,10 +33,43 @@ Thumbs.db
 /coverage.out
 *.cover
 /test-results/
+/coverage/
+*.test
+*.prof
+*.race
+*.cpu
+*.mem
+*.trace
+/testdata/
+*.test.exe
+/benchmark-results/
+/test-output/
+*.coverprofile
+/htmlcov/
+/junit.xml
+/test-reports/
+/coverage.html
+/coverage.xml
+*.bench
+*.fuzz
+/fuzz-outputs/
+test_*.new
+*.test.log
 
 # Docker and deployment files
 /docker-compose.override.yml
 .env
+
+# Test script backups and temporary files
+*.ps1.new
+*.sh.new
+*.ps1.bak
+*.sh.bak
+*.ps1.old
+*.sh.old
+/test-scripts-backup/
+test_runner_*.ps1
+test_runner_*.sh
 
 # Go cache and build metadata
 /.cache/
