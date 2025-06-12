@@ -95,5 +95,9 @@ func _SetupReportRoutes(router *gin.RouterGroup) {
 	report := router.Group("/report")
 	{
 		report.POST("/sales", controllers.GetSalesReport)
+		report.GET("/all", controllers.ListReports)
+		report.GET("/:id", controllers.GetReportDetails)
+		report.DELETE("/:id", controllers.DeleteReport)
+		report.GET("/download/:id", controllers.DownloadReportCSV)
 	}
 }

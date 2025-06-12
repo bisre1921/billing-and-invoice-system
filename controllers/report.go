@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -171,7 +172,148 @@ func GetSalesReport(c *gin.Context) {
 		})
 	}
 
+	// Store the report in MongoDB as JSON string
+	reportJSON, err := json.Marshal(report)
+	if err == nil {
+		_, _ = StoreSalesReport(req.CompanyID, "Sales Report", "Auto-generated sales report", "system", string(reportJSON))
+	}
+
 	c.JSON(http.StatusOK, report)
+}
+
+// Store a generated report in MongoDB
+func StoreSalesReport(companyID, title, description, createdBy string, content string) (primitive.ObjectID, error) {
+	if content == "" || content == "null" || content == "[]" {
+		return primitive.NilObjectID, nil
+	}
+	report := bson.M{
+		"company_id":         companyID,
+		"title":              title,
+		"description":        description,
+		"created_by":         createdBy,
+		"created_date":       time.Now(),
+		"last_modified_date": time.Now(),
+		"type":               "sales",
+		"status":             "Generated",
+		"content":            content,
+	}
+	res, err := config.DB.Collection("reports").InsertOne(context.Background(), report)
+	if err != nil {
+		return primitive.NilObjectID, err
+	}
+	return res.InsertedID.(primitive.ObjectID), nil
+}
+
+// ListReports godoc
+// @Summary List all stored reports
+// @Description Fetch all stored reports (basic info only)
+// @Tags Reports
+// @Produce json
+// @Success 200 {array} object
+// @Failure 500 {object} map[string]string
+// @Router /report/all [get]
+func ListReports(c *gin.Context) {
+	cursor, err := config.DB.Collection("reports").Find(context.Background(), bson.M{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch reports"})
+		return
+	}
+	defer cursor.Close(context.Background())
+	var reports []bson.M
+	for cursor.Next(context.Background()) {
+		var r bson.M
+		if err := cursor.Decode(&r); err == nil {
+			reports = append(reports, bson.M{
+				"id":           r["_id"],
+				"company_id":   r["company_id"],
+				"title":        r["title"],
+				"description":  r["description"],
+				"created_by":   r["created_by"],
+				"created_date": r["created_date"],
+				"type":         r["type"],
+				"status":       r["status"],
+			})
+		}
+	}
+	c.JSON(http.StatusOK, reports)
+}
+
+// GetReportDetails godoc
+// @Summary Get report details
+// @Description Fetch details of a specific report
+// @Tags Reports
+// @Produce json
+// @Param id path string true "Report ID"
+// @Success 200 {object} object
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /report/{id} [get]
+func GetReportDetails(c *gin.Context) {
+	reportID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(reportID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		return
+	}
+	var report bson.M
+	err = config.DB.Collection("reports").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&report)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+		return
+	}
+	c.JSON(http.StatusOK, report)
+}
+
+// DeleteReport godoc
+// @Summary Delete a report
+// @Description Delete a generated report by ID
+// @Tags Reports
+// @Param id path string true "Report ID"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /report/{id} [delete]
+func DeleteReport(c *gin.Context) {
+	reportID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(reportID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		return
+	}
+	_, err = config.DB.Collection("reports").DeleteOne(context.Background(), bson.M{"_id": objID})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete report"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Report deleted successfully"})
+}
+
+// DownloadReportCSV godoc
+// @Summary Download a report as CSV
+// @Description Download a generated report in CSV format
+// @Tags Reports
+// @Produce text/csv
+// @Param id path string true "Report ID"
+// @Success 200 {file} binary
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /report/download/{id} [get]
+func DownloadReportCSV(c *gin.Context) {
+	reportID := c.Param("id")
+	objID, err := primitive.ObjectIDFromHex(reportID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid report ID"})
+		return
+	}
+	var report bson.M
+	err = config.DB.Collection("reports").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&report)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
+		return
+	}
+	c.Header("Content-Disposition", "attachment; filename=report.csv")
+	c.Header("Content-Type", "text/csv")
+	c.Writer.Write([]byte(report["content"].(string)))
 }
 
 func contains(arr []string, val string) bool {
