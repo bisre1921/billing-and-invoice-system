@@ -14,7 +14,7 @@ import (
 
 // RegisterCustomer godoc
 // @Summary Register a new customer
-// @Description Business Owner or Employee adds a new customer
+// @Description Business Owner or Employee adds a new customer. CurrentCreditAvailable is initialized to MaxCreditAmount.
 // @Tags Customer
 // @Accept json
 // @Produce json
@@ -42,13 +42,14 @@ func RegisterCustomer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "TIN is required"})
 		return
 	}
-
 	// Validate MaxCreditAmount (should be non-negative)
 	if customer.MaxCreditAmount < 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "MaxCreditAmount cannot be negative"})
 		return
 	}
 
+	// Initialize CurrentCreditAvailable to MaxCreditAmount
+	customer.CurrentCreditAvailable = customer.MaxCreditAmount
 	customer.CreatedAt = time.Now()
 	customer.UpdatedAt = time.Now()
 
@@ -66,14 +67,15 @@ func RegisterCustomer(c *gin.Context) {
 
 // UpdateCustomer godoc
 // @Summary Update a customer by ID
-// @Description Business Owner or Employee updates customer details
+// @Description Business Owner or Employee updates customer details. MaxCreditAmount cannot be reduced below the amount already used.
 // @Tags Customer
 // @Accept json
 // @Produce json
 // @Param id path string true "Customer ID"
 // @Param customer body models.Customer true "Updated Customer Info"
 // @Success 200 {object} models.GenericResponse
-// @Failure 400 {object} models.ErrorResponse
+// @Failure 400 {object} models.ErrorResponse "Invalid ID or credit amount less than used credit"
+// @Failure 404 {object} models.ErrorResponse "Customer not found"
 // @Failure 500 {object} models.ErrorResponse
 // @Router /customer/update/{id} [put]
 // @Security BearerAuth
@@ -90,16 +92,38 @@ func UpdateCustomer(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Get existing customer to calculate the credit difference and ensure we don't reduce below what's being used
+	var existingCustomer models.Customer
+	err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&existingCustomer)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
+		return
+	}
+
+	// Calculate used credit (max - available)
+	usedCredit := existingCustomer.MaxCreditAmount - existingCustomer.CurrentCreditAvailable
+
+	// Make sure the new maximum credit is not less than what's already been used
+	if updatedCustomer.MaxCreditAmount < usedCredit {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "New maximum credit amount cannot be less than current used credit"})
+		return
+	}
+
+	// Recalculate current credit available based on the new maximum
+	updatedCustomer.CurrentCreditAvailable = updatedCustomer.MaxCreditAmount - usedCredit
+
 	update := bson.M{
 		"$set": bson.M{
-			"name":              updatedCustomer.Name,
-			"email":             updatedCustomer.Email,
-			"phone":             updatedCustomer.Phone,
-			"address":           updatedCustomer.Address,
-			"tin":               updatedCustomer.TIN,
-			"max_credit_amount": updatedCustomer.MaxCreditAmount,
-			"company_id":        updatedCustomer.CompanyID,
-			"updated_at":        time.Now(),
+			"name":                     updatedCustomer.Name,
+			"email":                    updatedCustomer.Email,
+			"phone":                    updatedCustomer.Phone,
+			"address":                  updatedCustomer.Address,
+			"tin":                      updatedCustomer.TIN,
+			"max_credit_amount":        updatedCustomer.MaxCreditAmount,
+			"current_credit_available": updatedCustomer.CurrentCreditAvailable,
+			"company_id":               updatedCustomer.CompanyID,
+			"updated_at":               time.Now(),
 		},
 	}
 

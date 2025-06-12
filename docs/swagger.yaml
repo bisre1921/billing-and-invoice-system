@@ -27,6 +27,8 @@ definitions:
         type: string
       created_at:
         type: string
+      current_credit_available:
+        type: number
       email:
         type: string
       id:
@@ -114,6 +116,8 @@ definitions:
         type: array
       payment_date:
         type: string
+      payment_type:
+        type: string
       reference_number:
         type: string
       status:
@@ -125,6 +129,7 @@ definitions:
     required:
     - company_id
     - customer_id
+    - payment_type
     - reference_number
     type: object
   models.InvoiceItem:
@@ -532,7 +537,8 @@ paths:
     post:
       consumes:
       - application/json
-      description: Business Owner or Employee adds a new customer
+      description: Business Owner or Employee adds a new customer. CurrentCreditAvailable
+        is initialized to MaxCreditAmount.
       parameters:
       - description: Customer Data
         in: body
@@ -564,7 +570,8 @@ paths:
     put:
       consumes:
       - application/json
-      description: Business Owner or Employee updates customer details
+      description: Business Owner or Employee updates customer details. MaxCreditAmount
+        cannot be reduced below the amount already used.
       parameters:
       - description: Customer ID
         in: path
@@ -585,7 +592,11 @@ paths:
           schema:
             $ref: '#/definitions/models.GenericResponse'
         "400":
-          description: Bad Request
+          description: Invalid ID or credit amount less than used credit
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "404":
+          description: Customer not found
           schema:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
@@ -876,7 +887,8 @@ paths:
       consumes:
       - application/json
       description: Generate a new invoice for a customer with item list and auto-calculated
-        total.
+        total. Payment type can be 'cash' or 'credit'. Due date is only required for
+        credit payments.
       parameters:
       - description: Invoice data
         in: body
@@ -893,7 +905,13 @@ paths:
             additionalProperties: true
             type: object
         "400":
-          description: Invalid invoice input
+          description: Invalid invoice input or insufficient customer credit
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Customer not found
           schema:
             additionalProperties:
               type: string
