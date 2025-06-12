@@ -15,7 +15,8 @@ type Invoice struct {
 	Terms           string             `json:"terms" bson:"terms"`
 	Status          string             `json:"status" bson:"status"`
 	Amount          float64            `json:"amount" bson:"amount"`
-	DueDate         time.Time          `json:"due_date" bson:"due_date"`
+	PaymentType     string             `json:"payment_type" bson:"payment_type" binding:"required"`
+	DueDate         *time.Time         `json:"due_date,omitempty" bson:"due_date,omitempty"`
 	PaymentDate     time.Time          `json:"payment_date,omitempty" bson:"payment_date,omitempty"`
 	Items           []InvoiceItem      `json:"items" bson:"items"`
 	CreatedAt       time.Time          `json:"created_at" bson:"created_at"`

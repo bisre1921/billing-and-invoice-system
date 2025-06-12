@@ -17,13 +17,14 @@ import (
 
 // GenerateInvoice godoc
 // @Summary Generate a new invoice
-// @Description Generate a new invoice for a customer with item list and auto-calculated total.
+// @Description Generate a new invoice for a customer with item list and auto-calculated total. Payment type can be 'cash' or 'credit'. Due date is only required for credit payments.
 // @Tags Invoices
 // @Accept json
 // @Produce json
 // @Param invoice body models.Invoice true "Invoice data"
 // @Success 200 {object} map[string]interface{} "Invoice generated successfully"
-// @Failure 400 {object} map[string]string "Invalid invoice input"
+// @Failure 400 {object} map[string]string "Invalid invoice input or insufficient customer credit"
+// @Failure 404 {object} map[string]string "Customer not found"
 // @Failure 500 {object} map[string]string "Failed to generate invoice"
 // @Router /invoice/generate [post]
 func GenerateInvoice(c *gin.Context) {
@@ -40,13 +41,60 @@ func GenerateInvoice(c *gin.Context) {
 		invoice.Items[i].Subtotal = subtotal
 		total += subtotal
 	}
-
 	invoice.Amount = total
 	invoice.CreatedAt = time.Now()
 	invoice.UpdatedAt = time.Now()
 	invoice.Date = time.Now()
-	invoice.DueDate = invoice.Date.Add(7 * 24 * time.Hour)
 	invoice.Status = "Unpaid"
+
+	// Validate payment type
+	if invoice.PaymentType != "cash" && invoice.PaymentType != "credit" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment type must be either 'cash' or 'credit'"})
+		return
+	}
+
+	// Handle payment type specific logic
+	if invoice.PaymentType == "credit" {
+		// Due date is required for credit payments
+		if invoice.DueDate == nil {
+			defaultDueDate := invoice.Date.Add(7 * 24 * time.Hour)
+			invoice.DueDate = &defaultDueDate
+		}
+
+		// Check if customer has enough credit
+		customerID, err := primitive.ObjectIDFromHex(invoice.CustomerID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
+			return
+		}
+
+		var customer models.Customer
+		err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": customerID}).Decode(&customer)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
+			return
+		}
+
+		// Check if total amount exceeds available credit
+		if customer.CurrentCreditAvailable < total {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice amount exceeds customer's available credit"})
+			return
+		}
+
+		// Deduct the invoice amount from the customer's available credit
+		_, err = config.DB.Collection("customers").UpdateOne(
+			context.Background(),
+			bson.M{"_id": customerID},
+			bson.M{"$set": bson.M{"current_credit_available": customer.CurrentCreditAvailable - total}},
+		)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update customer credit"})
+			return
+		}
+	} else {
+		// For cash payments, due date should be nil
+		invoice.DueDate = nil
+	}
 
 	res, err := config.DB.Collection("invoices").InsertOne(context.Background(), invoice)
 	if err != nil {
@@ -194,12 +242,12 @@ func SendInvoice(c *gin.Context) {
 	}
 
 	m := gomail.NewMessage()
-	m.SetHeader("From", "bisrattewodros3@gmail.com") 
+	m.SetHeader("From", "bisrattewodros3@gmail.com")
 	m.SetHeader("To", customer.Email)
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/plain", emailBody)
 
-	d := gomail.NewDialer("smtp.gmail.com", 587, "bisrattewodros3@@gmail.com", "xtkd pntw wrfq rdak") 
+	d := gomail.NewDialer("smtp.gmail.com", 587, "bisrattewodros3@@gmail.com", "xtkd pntw wrfq rdak")
 
 	if err := d.DialAndSend(m); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send email", "details": err.Error()})
@@ -240,15 +288,15 @@ func DownloadInvoice(c *gin.Context) {
 	pdf.AddPage()
 
 	pdf.SetFont("Arial", "B", 20)
-	companyName := "Your Company Name" 
+	companyName := "Your Company Name"
 	pdf.Cell(0, 15, companyName)
 	pdf.Ln(10)
 
 	pdf.SetFont("Arial", "", 10)
-	companyAddress := "Your Company Address" 
+	companyAddress := "Your Company Address"
 	pdf.Cell(0, 5, companyAddress)
 	pdf.Ln(5)
-	pdf.Cell(0, 5, "Email: your_company_email@example.com") 
+	pdf.Cell(0, 5, "Email: your_company_email@example.com")
 	pdf.Ln(8)
 
 	if invoice.Status == "Paid" {
@@ -315,7 +363,6 @@ func generateInvoicePDFContent(pdf *gofpdf.Fpdf, invoice *models.Invoice) {
 	pdf.Cell(0, 5, "Thank you for your business!")
 }
 
-
 func generateReceiptPDFContent(pdf *gofpdf.Fpdf, invoice *models.Invoice) {
 	pdf.SetFont("Arial", "B", 16)
 	pdf.Cell(40, 10, "PAYMENT RECEIPT")
@@ -361,7 +408,6 @@ func generateReceiptPDFContent(pdf *gofpdf.Fpdf, invoice *models.Invoice) {
 	pdf.Cell(0, 5, "Payment Received. Thank you!")
 }
 
-
 // MarkInvoiceAsPaid godoc
 // @Summary Mark an invoice as paid
 // @Description Update the status of a specific invoice to "Paid" and optionally set the payment date.
@@ -393,7 +439,15 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 	if !updateRequest.PaymentDate.IsZero() {
 		update["payment_date"] = updateRequest.PaymentDate
 	}
+	// First get the invoice to check if it was a credit payment
+	var invoice models.Invoice
+	err = config.DB.Collection("invoices").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&invoice)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		return
+	}
 
+	// Update the invoice status
 	result, err := config.DB.Collection("invoices").UpdateOne(
 		context.Background(),
 		bson.M{"_id": objID},
@@ -405,8 +459,33 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 	}
 
 	if result.ModifiedCount == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found or already paid"})
 		return
+	}
+
+	// If it was a credit payment, restore the customer's available credit
+	if invoice.PaymentType == "credit" && invoice.Status == "Unpaid" {
+		customerID, err := primitive.ObjectIDFromHex(invoice.CustomerID)
+		if err != nil {
+			// Log the error but don't fail the operation
+			fmt.Printf("Error parsing customer ID: %v\n", err)
+		} else {
+			// Get the customer to update their available credit
+			var customer models.Customer
+			err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": customerID}).Decode(&customer)
+			if err == nil {
+				// Update the customer's available credit by adding the invoice amount back
+				_, err = config.DB.Collection("customers").UpdateOne(
+					context.Background(),
+					bson.M{"_id": customerID},
+					bson.M{"$set": bson.M{"current_credit_available": customer.CurrentCreditAvailable + invoice.Amount}},
+				)
+				if err != nil {
+					// Log the error but don't fail the operation
+					fmt.Printf("Error restoring customer credit: %v\n", err)
+				}
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice marked as paid successfully"})

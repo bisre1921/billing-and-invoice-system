@@ -392,7 +392,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Business Owner or Employee adds a new customer",
+                "description": "Business Owner or Employee adds a new customer. CurrentCreditAvailable is initialized to MaxCreditAmount.",
                 "consumes": [
                     "application/json"
                 ],
@@ -443,7 +443,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Business Owner or Employee updates customer details",
+                "description": "Business Owner or Employee updates customer details. MaxCreditAmount cannot be reduced below the amount already used.",
                 "consumes": [
                     "application/json"
                 ],
@@ -480,7 +480,13 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "Invalid ID or credit amount less than used credit",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
                         "schema": {
                             "$ref": "#/definitions/models.ErrorResponse"
                         }
@@ -922,7 +928,7 @@ const docTemplate = `{
         },
         "/invoice/generate": {
             "post": {
-                "description": "Generate a new invoice for a customer with item list and auto-calculated total.",
+                "description": "Generate a new invoice for a customer with item list and auto-calculated total. Payment type can be 'cash' or 'credit'. Due date is only required for credit payments.",
                 "consumes": [
                     "application/json"
                 ],
@@ -953,7 +959,16 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid invoice input",
+                        "description": "Invalid invoice input or insufficient customer credit",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Customer not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1898,6 +1913,9 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "current_credit_available": {
+                    "type": "number"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2001,6 +2019,7 @@ const docTemplate = `{
             "required": [
                 "company_id",
                 "customer_id",
+                "payment_type",
                 "reference_number"
             ],
             "properties": {
@@ -2032,6 +2051,9 @@ const docTemplate = `{
                     }
                 },
                 "payment_date": {
+                    "type": "string"
+                },
+                "payment_type": {
                     "type": "string"
                 },
                 "reference_number": {
