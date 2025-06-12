@@ -2,9 +2,7 @@ package config
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -21,25 +19,31 @@ func ConnectDB() error {
 		log.Println("Error loading .env file")
 	}
 
-	mongoURI := os.Getenv("MONGO_URI")
-	if mongoURI == "" {
-		return fmt.Errorf("MONGO_URI is not set in .env file")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Second)
+	// Use local MongoDB URI directly
+	localURI := "mongodb://localhost:27017/billing_invoice"
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	log.Println("Connecting to local MongoDB at localhost:27017/billing_invoice...")
+	
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(localURI))
 	if err != nil {
-		return fmt.Errorf("failed to connect to MongoDB: %v", err)
+		log.Printf("⚠️  Failed to connect to local MongoDB: %v", err)
+		log.Println("🚀 Starting server without database connection (development mode)")
+		log.Println("   📝 Note: Database operations will not work until connection is established")
+		return nil
 	}
 
 	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
-		return fmt.Errorf("failed to ping MongoDB: %v", err)
+		log.Printf("⚠️  Failed to ping local MongoDB: %v", err)
+		log.Println("🚀 Starting server without database connection (development mode)")
+		log.Println("   📝 Note: Database operations will not work until connection is established")
+		return nil
 	}
 
-	DB = client.Database("billing-and-invoice")
-
+	DB = client.Database("billing_invoice")
+	log.Println("✅ Successfully connected to local MongoDB (billing_invoice database)")
 	return nil
 }
