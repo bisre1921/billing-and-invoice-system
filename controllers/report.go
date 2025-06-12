@@ -3,7 +3,9 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/bisre1921/billing-and-invoice-system/config"
@@ -90,13 +92,17 @@ func GetSalesReport(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date_range value"})
 		return
 	}
-
 	filter := bson.M{
 		"company_id": req.CompanyID,
 		"date":       bson.M{"$gte": start, "$lt": end},
 	}
 	if len(req.Statuses) > 0 {
-		filter["status"] = bson.M{"$in": req.Statuses}
+		// Make sure status values match what's in the database (case-sensitive matching)
+		statusValues := make([]string, len(req.Statuses))
+		for i, s := range req.Statuses {
+			statusValues[i] = s // Ensure status values match exactly what's in the database
+		}
+		filter["status"] = bson.M{"$in": statusValues}
 	}
 
 	cursor, err := config.DB.Collection("invoices").Find(context.Background(), filter)
@@ -126,7 +132,6 @@ func GetSalesReport(c *gin.Context) {
 		if err := cursor.Decode(&inv); err != nil {
 			continue
 		}
-
 		// Filter by item category if needed
 		var filteredItems []struct {
 			Name      string  `json:"name"`
@@ -135,8 +140,17 @@ func GetSalesReport(c *gin.Context) {
 			UnitPrice float64 `json:"unit_price"`
 			Subtotal  float64 `json:"subtotal"`
 		}
+
+		// If there are category filters, we need to check if any items match
+		hasMatchingCategories := len(req.Categories) == 0 // If no categories specified, all items match
+
 		for _, it := range inv.Items {
-			if len(req.Categories) == 0 || contains(req.Categories, it.Category) {
+			// Make sure Category field exists and isn't empty before comparing
+			itemCategory := it.Category
+			categoryMatches := len(req.Categories) == 0 || (itemCategory != "" && contains(req.Categories, itemCategory))
+
+			if categoryMatches {
+				hasMatchingCategories = true
 				filteredItems = append(filteredItems, struct {
 					Name      string  `json:"name"`
 					Category  string  `json:"category"`
@@ -144,11 +158,13 @@ func GetSalesReport(c *gin.Context) {
 					UnitPrice float64 `json:"unit_price"`
 					Subtotal  float64 `json:"subtotal"`
 				}{
-					Name: it.ItemName, Category: it.Category, Quantity: it.Quantity, UnitPrice: it.UnitPrice, Subtotal: it.Subtotal,
+					Name: it.ItemName, Category: itemCategory, Quantity: it.Quantity, UnitPrice: it.UnitPrice, Subtotal: it.Subtotal,
 				})
 			}
 		}
-		if len(filteredItems) == 0 {
+
+		// Skip this invoice if no items match the category filters
+		if !hasMatchingCategories || len(filteredItems) == 0 {
 			continue
 		}
 
@@ -311,12 +327,79 @@ func DownloadReportCSV(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Report not found"})
 		return
 	}
-	c.Header("Content-Disposition", "attachment; filename=report.csv")
+
+	// Get the report content
+	content := report["content"].(string)
+
+	// Parse stored JSON into report items
+	var reportItems []SalesReportItem
+	err = json.Unmarshal([]byte(content), &reportItems)
+
+	var csvContent string
+	if err == nil && len(reportItems) > 0 {
+		// If we can parse the content, generate a nicely formatted CSV
+		csvContent = ConvertReportToCSV(reportItems)
+	} else {
+		// Fallback: use the raw content
+		csvContent = content
+	}
+
+	filename := "sales_report_" + time.Now().Format("2006-01-02") + ".csv"
+	c.Header("Content-Disposition", "attachment; filename="+filename)
 	c.Header("Content-Type", "text/csv")
-	c.Writer.Write([]byte(report["content"].(string)))
+	c.Writer.Write([]byte(csvContent))
+}
+
+// ConvertReportToCSV converts a sales report to CSV format
+func ConvertReportToCSV(reportItems []SalesReportItem) string {
+	// CSV header
+	csv := "Invoice ID,Date,Status,Customer Name,Total Amount,Item Name,Category,Quantity,Unit Price,Subtotal\n"
+
+	for _, item := range reportItems {
+		date := item.Date.Format("2006-01-02")
+		baseInfo := item.InvoiceID + "," + date + "," + item.Status + "," + escapeCsvField(item.CustomerName) + "," + fmt.Sprintf("%.2f", item.TotalAmount)
+
+		if len(item.Items) == 0 {
+			// Invoice with no items (shouldn't happen but just in case)
+			csv += baseInfo + ",N/A,N/A,0,0.00,0.00\n"
+		} else {
+			// First item on same line with invoice
+			csv += baseInfo + "," +
+				escapeCsvField(item.Items[0].Name) + "," +
+				escapeCsvField(item.Items[0].Category) + "," +
+				fmt.Sprintf("%d", item.Items[0].Quantity) + "," +
+				fmt.Sprintf("%.2f", item.Items[0].UnitPrice) + "," +
+				fmt.Sprintf("%.2f", item.Items[0].Subtotal) + "\n"
+
+			// Remaining items indented (reusing invoice info)
+			for i := 1; i < len(item.Items); i++ {
+				it := item.Items[i]
+				csv += ",,,," + "," + // Empty cells for invoice info
+					escapeCsvField(it.Name) + "," +
+					escapeCsvField(it.Category) + "," +
+					fmt.Sprintf("%d", it.Quantity) + "," +
+					fmt.Sprintf("%.2f", it.UnitPrice) + "," +
+					fmt.Sprintf("%.2f", it.Subtotal) + "\n"
+			}
+		}
+	}
+
+	return csv
+}
+
+// escapeCsvField escapes fields for CSV format (wrap in quotes and escape quotes)
+func escapeCsvField(field string) string {
+	if strings.Contains(field, ",") || strings.Contains(field, "\"") || strings.Contains(field, "\n") {
+		return "\"" + strings.Replace(field, "\"", "\"\"", -1) + "\""
+	}
+	return field
 }
 
 func contains(arr []string, val string) bool {
+	if val == "" {
+		return false // Handle empty values
+	}
+
 	for _, v := range arr {
 		if v == val {
 			return true
