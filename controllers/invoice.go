@@ -17,14 +17,13 @@ import (
 
 // GenerateInvoice godoc
 // @Summary Generate a new invoice
-// @Description Generate a new invoice for a customer with item list and auto-calculated total. Payment type can be 'cash' or 'credit'. Due date is only required for credit payments.
+// @Description Generate a new invoice for a customer with item list and auto-calculated total.
 // @Tags Invoices
 // @Accept json
 // @Produce json
 // @Param invoice body models.Invoice true "Invoice data"
 // @Success 200 {object} map[string]interface{} "Invoice generated successfully"
-// @Failure 400 {object} map[string]string "Invalid invoice input or insufficient customer credit"
-// @Failure 404 {object} map[string]string "Customer not found"
+// @Failure 400 {object} map[string]string "Invalid invoice input"
 // @Failure 500 {object} map[string]string "Failed to generate invoice"
 // @Router /invoice/generate [post]
 func GenerateInvoice(c *gin.Context) {
@@ -36,51 +35,40 @@ func GenerateInvoice(c *gin.Context) {
 
 	var total float64 = 0
 	for i, item := range invoice.Items {
+		// Validate discount is a float and between 0-100
+		if item.Discount < 0 || item.Discount > 100 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Discount for item %s must be a float between 0 and 100", item.ItemName)})
+			return
+		}
 		discountAmount := item.UnitPrice * float64(item.Discount) / 100
 		subtotal := float64(item.Quantity) * (item.UnitPrice - discountAmount)
 		invoice.Items[i].Subtotal = subtotal
 		total += subtotal
 	}
+
 	invoice.Amount = total
 	invoice.CreatedAt = time.Now()
 	invoice.UpdatedAt = time.Now()
 	invoice.Date = time.Now()
 	invoice.Status = "Unpaid"
 
-	// Validate payment type
-	if invoice.PaymentType != "cash" && invoice.PaymentType != "credit" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Payment type must be either 'cash' or 'credit'"})
-		return
-	}
-
-	// Handle payment type specific logic
 	if invoice.PaymentType == "credit" {
-		// Due date is required for credit payments
-		if invoice.DueDate == nil {
-			defaultDueDate := invoice.Date.Add(7 * 24 * time.Hour)
-			invoice.DueDate = &defaultDueDate
-		}
-
 		// Check if customer has enough credit
 		customerID, err := primitive.ObjectIDFromHex(invoice.CustomerID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid customer ID"})
 			return
 		}
-
 		var customer models.Customer
 		err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": customerID}).Decode(&customer)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Customer not found"})
 			return
 		}
-
-		// Check if total amount exceeds available credit
 		if customer.CurrentCreditAvailable < total {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invoice amount exceeds customer's available credit"})
 			return
 		}
-
 		// Deduct the invoice amount from the customer's available credit
 		_, err = config.DB.Collection("customers").UpdateOne(
 			context.Background(),
@@ -91,8 +79,14 @@ func GenerateInvoice(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update customer credit"})
 			return
 		}
-	} else {
-		// For cash payments, due date should be nil
+		// Set due date if not provided
+		if invoice.DueDate == nil || invoice.DueDate.IsZero() {
+			d := invoice.Date.Add(7 * 24 * time.Hour)
+			invoice.DueDate = &d
+		}
+	} else if invoice.PaymentType == "cash" {
+		invoice.Status = "Paid"
+		invoice.PaymentDate = time.Now()
 		invoice.DueDate = nil
 	}
 
@@ -103,7 +97,6 @@ func GenerateInvoice(c *gin.Context) {
 	}
 
 	invoice.ID = res.InsertedID.(primitive.ObjectID)
-
 	c.JSON(http.StatusOK, gin.H{"message": "Invoice generated successfully", "invoice": invoice})
 }
 
@@ -435,11 +428,7 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 		return
 	}
 
-	update := bson.M{"status": "Paid"}
-	if !updateRequest.PaymentDate.IsZero() {
-		update["payment_date"] = updateRequest.PaymentDate
-	}
-	// First get the invoice to check if it was a credit payment
+	// Fetch the invoice to check payment type and status
 	var invoice models.Invoice
 	err = config.DB.Collection("invoices").FindOne(context.Background(), bson.M{"_id": objID}).Decode(&invoice)
 	if err != nil {
@@ -447,7 +436,13 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 		return
 	}
 
-	// Update the invoice status
+	update := bson.M{"status": "Paid"}
+	if !updateRequest.PaymentDate.IsZero() {
+		update["payment_date"] = updateRequest.PaymentDate
+	} else {
+		update["payment_date"] = time.Now()
+	}
+
 	result, err := config.DB.Collection("invoices").UpdateOne(
 		context.Background(),
 		bson.M{"_id": objID},
@@ -459,29 +454,24 @@ func MarkInvoiceAsPaid(c *gin.Context) {
 	}
 
 	if result.ModifiedCount == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found or already paid"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Invoice not found"})
 		return
 	}
 
-	// If it was a credit payment, restore the customer's available credit
-	if invoice.PaymentType == "credit" && invoice.Status == "Unpaid" {
+	// If it was a credit payment and not already paid, restore the customer's available credit
+	if invoice.PaymentType == "credit" && invoice.Status != "Paid" {
 		customerID, err := primitive.ObjectIDFromHex(invoice.CustomerID)
-		if err != nil {
-			// Log the error but don't fail the operation
-			fmt.Printf("Error parsing customer ID: %v\n", err)
-		} else {
-			// Get the customer to update their available credit
+		if err == nil {
 			var customer models.Customer
 			err = config.DB.Collection("customers").FindOne(context.Background(), bson.M{"_id": customerID}).Decode(&customer)
 			if err == nil {
-				// Update the customer's available credit by adding the invoice amount back
 				_, err = config.DB.Collection("customers").UpdateOne(
 					context.Background(),
 					bson.M{"_id": customerID},
 					bson.M{"$set": bson.M{"current_credit_available": customer.CurrentCreditAvailable + invoice.Amount}},
 				)
+				// If error, just log, don't fail the operation
 				if err != nil {
-					// Log the error but don't fail the operation
 					fmt.Printf("Error restoring customer credit: %v\n", err)
 				}
 			}
