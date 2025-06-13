@@ -928,7 +928,7 @@ const docTemplate = `{
         },
         "/invoice/generate": {
             "post": {
-                "description": "Generate a new invoice for a customer with item list and auto-calculated total. Payment type can be 'cash' or 'credit'. Due date is only required for credit payments.",
+                "description": "Generate a new invoice for a customer with item list and auto-calculated total.",
                 "consumes": [
                     "application/json"
                 ],
@@ -959,16 +959,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid invoice input or insufficient customer credit",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "Customer not found",
+                        "description": "Invalid invoice input",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1543,49 +1534,28 @@ const docTemplate = `{
                 }
             }
         },
-        "/report/companies/{company_id}": {
+        "/report/all": {
             "get": {
-                "description": "Get all reports for a specific company",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Fetch all stored reports (basic info only)",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Get all reports for a specific company",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Company ID",
-                        "name": "company_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
+                "summary": "List all stored reports",
                 "responses": {
                     "200": {
-                        "description": "Reports retrieved successfully",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Report"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid company ID",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                                "type": "object"
                             }
                         }
                     },
                     "500": {
-                        "description": "Failed to get reports",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1598,17 +1568,14 @@ const docTemplate = `{
         },
         "/report/download/{id}": {
             "get": {
-                "description": "Download a report by ID",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Download a generated report in CSV format",
                 "produces": [
-                    "application/json"
+                    "text/csv"
                 ],
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Download a report by ID",
+                "summary": "Download a report as CSV",
                 "parameters": [
                     {
                         "type": "string",
@@ -1620,14 +1587,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Report downloaded successfully",
+                        "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "type": "file"
                         }
                     },
                     "400": {
-                        "description": "Invalid report ID",
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1635,8 +1601,8 @@ const docTemplate = `{
                             }
                         }
                     },
-                    "500": {
-                        "description": "Failed to download report",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1647,9 +1613,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/report/generate": {
+        "/report/sales": {
             "post": {
-                "description": "Generate a new report based on the provided type, title, and description. The content is auto-generated.",
+                "description": "Returns sales data for a company over a given period, with filters for status and item category.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1659,37 +1625,30 @@ const docTemplate = `{
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Generate a new report",
+                "summary": "Get sales report",
                 "parameters": [
                     {
-                        "description": "Report generation data",
-                        "name": "report",
+                        "description": "Report filters",
+                        "name": "filters",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.GenerateReportRequest"
+                            "$ref": "#/definitions/controllers.SalesReportRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Report generated successfully",
+                        "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid report input",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/controllers.SalesReportItem"
                             }
                         }
                     },
-                    "500": {
-                        "description": "Failed to generate report",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1702,17 +1661,14 @@ const docTemplate = `{
         },
         "/report/{id}": {
             "get": {
-                "description": "Get a report by ID",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Fetch details of a specific report",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Reports"
                 ],
-                "summary": "Get a report by ID",
+                "summary": "Get report details",
                 "parameters": [
                     {
                         "type": "string",
@@ -1724,14 +1680,58 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "Report retrieved successfully",
+                        "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": true
+                            "type": "object"
                         }
                     },
                     "400": {
-                        "description": "Invalid report ID",
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a generated report by ID",
+                "tags": [
+                    "Reports"
+                ],
+                "summary": "Delete a report",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Report ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1740,7 +1740,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to get report",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1872,6 +1872,86 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "controllers.SalesReportItem": {
+            "type": "object",
+            "properties": {
+                "customer_name": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "invoice_id": {
+                    "type": "string"
+                },
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "category": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "quantity": {
+                                "type": "integer"
+                            },
+                            "subtotal": {
+                                "type": "number"
+                            },
+                            "unit_price": {
+                                "type": "number"
+                            }
+                        }
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "total_amount": {
+                    "type": "number"
+                }
+            }
+        },
+        "controllers.SalesReportRequest": {
+            "type": "object",
+            "required": [
+                "company_id",
+                "date_range"
+            ],
+            "properties": {
+                "categories": {
+                    "description": "e.g. [\"Electronics\", ...]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "company_id": {
+                    "type": "string"
+                },
+                "custom_end": {
+                    "type": "string"
+                },
+                "custom_start": {
+                    "description": "for custom range",
+                    "type": "string"
+                },
+                "date_range": {
+                    "description": "e.g. today, last_7_days, last_month, last_3_months, custom",
+                    "type": "string"
+                },
+                "statuses": {
+                    "description": "[\"Paid\", \"Unpaid\"]",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "models.Company": {
             "type": "object",
             "properties": {
@@ -1975,32 +2055,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "error": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.GenerateReportRequest": {
-            "type": "object",
-            "required": [
-                "company_id",
-                "description",
-                "title",
-                "type"
-            ],
-            "properties": {
-                "company_id": {
-                    "type": "string"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -2139,41 +2193,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.Report": {
-            "type": "object",
-            "properties": {
-                "company_id": {
-                    "type": "string"
-                },
-                "content": {
-                    "type": "string"
-                },
-                "created_by": {
-                    "type": "string"
-                },
-                "created_date": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "last_modified_date": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
